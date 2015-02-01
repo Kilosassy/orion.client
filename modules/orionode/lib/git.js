@@ -15,6 +15,9 @@ var util = require('util');
 var api = require('./api'), writeError = api.writeError;
 var fileUtil = require('./fileUtil');
 var resource = require('./resource');
+var git = require('nodegit');
+var finder = require('findit');
+var path = require("path");
 
 module.exports = function(options) {
 	var workspaceRoot = options.root;
@@ -28,7 +31,53 @@ module.exports = function(options) {
 	.use(connect.json())
 	.use(resource(workspaceRoot, {
 		GET: function(req, res, next, rest) {
-			console.log(req.url);
+			console.log(rest);
+			if (rest === '') {
+				console.log("nope")
+			} else if (rest.indexOf("clone/workspace/") === 0) {
+				console.log("matched")
+				finder(workspaceDir).on('directory', function (dir, stat, stop) {
+				    var base = path.basename(dir);
+				    if (base !== '.git') {
+				    	//console.log(dir);
+	    				git.Repository.open(dir)
+						.then(function(repo) {
+							return repo.getMasterCommit();
+						 })
+						 .then(function(firstCommitOnMaster) {
+						      // Create a new history event emitter.
+						      var history = firstCommitOnMaster.history();
+						      var count = 0 ;
+						      history.on("commit", function(commit) {
+			  					  if (++count >= 2) {
+							          return;
+							      }
+						
+							      // Show the commit sha.
+							      console.log("commit " + commit.sha());
+							
+							      // Store the author object.
+							      var author = commit.author();
+							
+							      // Display author information.
+							      console.log("Author:\t" + author.name() + " <", author.email() + ">");
+							
+							      // Show the commit date.
+							      console.log("Date:\t" + commit.date());
+							
+							      // Give some space and show the message.
+							      console.log("\n    " + commit.message());
+							      
+							      return;
+							  });
+							  
+							  history.start();
+						  })
+					}
+				});
+
+			}
+			
 			var ws = JSON.stringify({
 			  "Children": [
 			    {
