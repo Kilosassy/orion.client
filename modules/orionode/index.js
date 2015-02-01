@@ -9,6 +9,7 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 /*jslint node:true*/
+/*eslint-env node */
 var connect = require('connect'),
     path = require('path'),
     AppContext = require('./lib/node_apps').AppContext,
@@ -55,6 +56,7 @@ function startServer(options) {
 			}))
 			.use(orionGit({ // Match git API first to avoid body parsing for GET requests
 				root: '/gitapi',
+				fileRoot: '/file',
 				workspaceDir: workspaceDir
 			}))
 			.use(orionNode({

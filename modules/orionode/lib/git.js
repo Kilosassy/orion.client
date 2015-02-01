@@ -23,11 +23,8 @@ var path = require("path");
 module.exports = function(options) {
 	var workspaceRoot = options.root;
 	var workspaceDir = options.workspaceDir;
+	var fileRoot = options.fileRoot;
 	if (!workspaceRoot) { throw 'options.root path required'; }
-
-	var workspaceId = 'orionode';
-	var workspaceName = 'Orionode Git';
-
 	return connect()
 	.use(connect.json())
 	.use(resource(workspaceRoot, {
@@ -44,22 +41,22 @@ module.exports = function(options) {
 	    				git.Repository.open(dir)
 						.then(function(repo) {
 							if (repo) {
-								var location = dir.replace(workspaceDir, "Folder"); 
+								var location = api.join(fileRoot, dir.replace(workspaceDir + "/", ""));
 								var repoInfo = {
-								  "BranchLocation": "/gitapi/branch/file/" + location,
-							      "CommitLocation": "/gitapi/commit/file/" + location,
-							      "ConfigLocation": "/gitapi/config/clone/file/" + location,
-							      "ContentLocation": "/file/" + location,
-							      "DiffLocation": "/gitapi/diff/Default/file/" + location,
-							      "HeadLocation": "/gitapi/commit/HEAD/file/" + location,
-							      "IndexLocation": "/gitapi/index/file/" + location,
-							      "Location": "/gitapi/clone/file/" + location,
-							      "Name": base,
-							      "RemoteLocation": "/gitapi/remote/file/" + location,
-							      "StashLocation": "/gitapi/stash/file/" + location,
-							      "StatusLocation": "/gitapi/status/file/" + location,
-							      "TagLocation": "/gitapi/tag/file/" + location,
-							      "Type": "Clone"
+									"BranchLocation": "/gitapi/branch" + location,
+									"CommitLocation": "/gitapi/commit" + location,
+									"ConfigLocation": "/gitapi/config/clone" + location,
+									"ContentLocation": location,
+									"DiffLocation": "/gitapi/diff/Default" + location,
+									"HeadLocation": "/gitapi/commit/HEAD" + location,
+									"IndexLocation": "/gitapi/index" + location,
+									"Location": "/gitapi/clone" + location,
+									"Name": base,
+									"RemoteLocation": "/gitapi/remote" + location,
+									"StashLocation": "/gitapi/stash" + location,
+									"StatusLocation": "/gitapi/status" + location,
+									"TagLocation": "/gitapi/tag" + location,
+									"Type": "Clone"
 								};
 								repo.getRemotes()
 								.then(function(remotes){
