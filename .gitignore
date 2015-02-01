@@ -16,7 +16,6 @@ staging
 # Node/npm
 *.log
 node_modules/
-modules/orionode/orion.conf
 
 # Mac Development
 .DS_Store
