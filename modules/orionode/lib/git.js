@@ -36,93 +36,84 @@ module.exports = function(options) {
 				console.log("nope")
 			} else if (rest.indexOf("clone/workspace/") === 0) {
 				console.log("matched")
+				var repos = new Array();
+				
 				finder(workspaceDir).on('directory', function (dir, stat, stop) {
 				    var base = path.basename(dir);
 				    if (base !== '.git') {
 				    	//console.log(dir);
 	    				git.Repository.open(dir)
 						.then(function(repo) {
-							return repo.getMasterCommit();
+							if (repo) {
+								var location = dir.replace(workspaceDir, "Folder");
+								
+								repos.push({
+								  "BranchLocation": "/gitapi/branch/file/" + location,
+							      "CommitLocation": "/gitapi/commit/file/" + location,
+							      "ConfigLocation": "/gitapi/config/clone/file/" + location,
+							      "ContentLocation": "/file/" + location,
+							      "DiffLocation": "/gitapi/diff/Default/file/" + location,
+							      "GitUrl": "https://github.com/albertcui/orion.client.git",
+							      "HeadLocation": "/gitapi/commit/HEAD/file/" + location,
+							      "IndexLocation": "/gitapi/index/file/" + location,
+							      "Location": "/gitapi/clone/file/" + location,
+							      "Name": base,
+							      "RemoteLocation": "/gitapi/remote/file/" + location,
+							      "StashLocation": "/gitapi/stash/file/" + location,
+							      "StatusLocation": "/gitapi/status/file/" + location,
+							      "TagLocation": "/gitapi/tag/file/" + location,
+							      "Type": "Clone"
+								});
+								return repo.getMasterCommit();
+							}
 						 })
-						 .then(function(firstCommitOnMaster) {
-						      // Create a new history event emitter.
-						      var history = firstCommitOnMaster.history();
-						      var count = 0 ;
-						      history.on("commit", function(commit) {
-			  					  if (++count >= 2) {
-							          return;
-							      }
-						
-							      // Show the commit sha.
-							      console.log("commit " + commit.sha());
-							
-							      // Store the author object.
-							      var author = commit.author();
-							
-							      // Display author information.
-							      console.log("Author:\t" + author.name() + " <", author.email() + ">");
-							
-							      // Show the commit date.
-							      console.log("Date:\t" + commit.date());
-							
-							      // Give some space and show the message.
-							      console.log("\n    " + commit.message());
-							      
-							      return;
-							  });
-							  
-							  history.start();
-						  })
+//						 .then(function(firstCommitOnMaster) {
+//						      // Create a new history event emitter.
+//						      var history = firstCommitOnMaster.history();
+//						      var count = 0;
+//						      history.on("commit", function(commit) {
+//			  					  if (++count >= 2) {
+//							          return;
+//							      }
+//						
+//							      // Show the commit sha.
+//							      console.log("commit " + commit.sha());
+//							
+//							      // Store the author object.
+//							      var author = commit.author();
+//							
+//							      // Display author information.
+//							      console.log("Author:\t" + author.name() + " <", author.email() + ">");
+//							
+//							      // Show the commit date.
+//							      console.log("Date:\t" + commit.date());
+//							
+//							      // Give some space and show the message.
+//							      console.log("\n    " + commit.message());
+//							      
+//							      return;
+//							  });
+//							  
+//							  history.start();
+//						  })
 					}
-				});
-
+				})
+				.on('end', function() {
+					var resp = JSON.stringify({
+						"Children": repos,
+						"Type": "Clone"
+					});
+					res.statusCode = 200;
+					res.setHeader('Content-Type', 'application/json');
+					res.setHeader('Content-Length', resp.length);
+					res.end(resp);
+				})
+				.on('error', function() {
+					writeError(403, res)
+				})
 			}
-			
-			var ws = JSON.stringify({
-			  "Children": [
-			    {
-			      "BranchLocation": "/gitapi/branch/file/albert-OrionContent/Folder/orion.client/",
-			      "CommitLocation": "/gitapi/commit/file/albert-OrionContent/Folder/orion.client/",
-			      "ConfigLocation": "/gitapi/config/clone/file/albert-OrionContent/Folder/orion.client/",
-			      "ContentLocation": "/file/albert-OrionContent/Folder/orion.client/",
-			      "DiffLocation": "/gitapi/diff/Default/file/albert-OrionContent/Folder/orion.client/",
-			      "GitUrl": "https://github.com/albertcui/orion.client.git",
-			      "HeadLocation": "/gitapi/commit/HEAD/file/albert-OrionContent/Folder/orion.client/",
-			      "IndexLocation": "/gitapi/index/file/albert-OrionContent/Folder/orion.client/",
-			      "Location": "/gitapi/clone/file/albert-OrionContent/Folder/orion.client/",
-			      "Name": "orion.client",
-			      "RemoteLocation": "/gitapi/remote/file/albert-OrionContent/Folder/orion.client/",
-			      "StashLocation": "/gitapi/stash/file/albert-OrionContent/Folder/orion.client/",
-			      "StatusLocation": "/gitapi/status/file/albert-OrionContent/Folder/orion.client/",
-			      "TagLocation": "/gitapi/tag/file/albert-OrionContent/Folder/orion.client/",
-			      "Type": "Clone"
-			    },
-			    {
-			      "BranchLocation": "/gitapi/branch/file/albert-OrionContent/Folder/orion.server/",
-			      "CommitLocation": "/gitapi/commit/file/albert-OrionContent/Folder/orion.server/",
-			      "ConfigLocation": "/gitapi/config/clone/file/albert-OrionContent/Folder/orion.server/",
-			      "ContentLocation": "/file/albert-OrionContent/Folder/orion.server/",
-			      "DiffLocation": "/gitapi/diff/Default/file/albert-OrionContent/Folder/orion.server/",
-			      "GitUrl": "https://github.com/albertcui/orion.server.git",
-			      "HeadLocation": "/gitapi/commit/HEAD/file/albert-OrionContent/Folder/orion.server/",
-			      "IndexLocation": "/gitapi/index/file/albert-OrionContent/Folder/orion.server/",
-			      "Location": "/gitapi/clone/file/albert-OrionContent/Folder/orion.server/",
-			      "Name": "orion.server",
-			      "RemoteLocation": "/gitapi/remote/file/albert-OrionContent/Folder/orion.server/",
-			      "StashLocation": "/gitapi/stash/file/albert-OrionContent/Folder/orion.server/",
-			      "StatusLocation": "/gitapi/status/file/albert-OrionContent/Folder/orion.server/",
-			      "TagLocation": "/gitapi/tag/file/albert-OrionContent/Folder/orion.server/",
-			      "Type": "Clone"
-			    }
-			  ],
-			  "Type": "Clone"
-			});
-			res.setHeader('Content-Type', 'application/json');
-			res.setHeader('Content-Length', ws.length);
-			res.end(ws);
 		},
 		POST: function(req, res, next, rest) {
-			console.log("potato")
 			writeError(403, res)
 		},
 		PUT: function(req, res, next, rest) {
