@@ -38,13 +38,29 @@ module.exports = function(options) {
 			} else if (rest.indexOf("clone/workspace/") === 0) {
 				console.log("matched")
 				var repos = new Array();
-				
 				finder(workspaceDir).on('directory', function (dir, stat, stop) {
 				    var base = path.basename(dir);
 				    if (base !== '.git') {
 	    				git.Repository.open(dir)
 						.then(function(repo) {
 							if (repo) {
+								var location = dir.replace(workspaceDir, "Folder"); 
+								var repoInfo = {
+								  "BranchLocation": "/gitapi/branch/file/" + location,
+							      "CommitLocation": "/gitapi/commit/file/" + location,
+							      "ConfigLocation": "/gitapi/config/clone/file/" + location,
+							      "ContentLocation": "/file/" + location,
+							      "DiffLocation": "/gitapi/diff/Default/file/" + location,
+							      "HeadLocation": "/gitapi/commit/HEAD/file/" + location,
+							      "IndexLocation": "/gitapi/index/file/" + location,
+							      "Location": "/gitapi/clone/file/" + location,
+							      "Name": base,
+							      "RemoteLocation": "/gitapi/remote/file/" + location,
+							      "StashLocation": "/gitapi/stash/file/" + location,
+							      "StatusLocation": "/gitapi/status/file/" + location,
+							      "TagLocation": "/gitapi/tag/file/" + location,
+							      "Type": "Clone"
+								};
 								repo.getRemotes()
 								.then(function(remotes){
 									remotes.forEach(function(remote) {
@@ -52,30 +68,16 @@ module.exports = function(options) {
 											repo.getRemote(remote)
 											.then(function(remote){
 												console.log(remote.url());
-												return remote.url();
-											});
-										}
+												repoInfo.GitUrl = remote.url();
+												console.log(repoInfo);
+												return;
+											})
+										} 
+										
 									});
 								})
-								.then(function(URL) {
-									var location = dir.replace(workspaceDir, "Folder"); 
-									repos.push({
-									  "BranchLocation": "/gitapi/branch/file/" + location,
-								      "CommitLocation": "/gitapi/commit/file/" + location,
-								      "ConfigLocation": "/gitapi/config/clone/file/" + location,
-								      "ContentLocation": "/file/" + location,
-								      "DiffLocation": "/gitapi/diff/Default/file/" + location,
-								      "GitUrl": URL,
-								      "HeadLocation": "/gitapi/commit/HEAD/file/" + location,
-								      "IndexLocation": "/gitapi/index/file/" + location,
-								      "Location": "/gitapi/clone/file/" + location,
-								      "Name": base,
-								      "RemoteLocation": "/gitapi/remote/file/" + location,
-								      "StashLocation": "/gitapi/stash/file/" + location,
-								      "StatusLocation": "/gitapi/status/file/" + location,
-								      "TagLocation": "/gitapi/tag/file/" + location,
-								      "Type": "Clone"
-									});
+								.then(function() {
+									repos.push(repoInfo);
 								});
 								return repo.getMasterCommit();
 							}
