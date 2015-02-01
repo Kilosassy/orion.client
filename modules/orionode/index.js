@@ -15,6 +15,7 @@ var connect = require('connect'),
     orionFile = require('./lib/file'),
     orionNode = require('./lib/node'),
     orionWorkspace = require('./lib/workspace'),
+    orionGit = require('./lib/git'),
     orionNodeStatic = require('./lib/orionode_static'),
     orionStatic = require('./lib/orion_static'),
     term = require('term.js');
@@ -50,6 +51,10 @@ function startServer(options) {
 			.use(orionWorkspace({
 				root: '/workspace',
 				fileRoot: '/file',
+				workspaceDir: workspaceDir
+			}))
+			.use(orionGit({
+				root: '/git',
 				workspaceDir: workspaceDir
 			}))
 			.use(orionNode({
