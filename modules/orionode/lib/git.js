@@ -30,18 +30,50 @@ module.exports = function(options) {
 		GET: function(req, res, next, rest) {
 			console.log(req.url);
 			var ws = JSON.stringify({
-				Id: 'anonymous',
-				Name: 'anonymous',
-				UserName: 'anonymous',
-				Workspaces: [{
-					Name: workspaceName
-				}]
+			  "Children": [
+			    {
+			      "BranchLocation": "/gitapi/branch/file/albert-OrionContent/Folder/orion.client/",
+			      "CommitLocation": "/gitapi/commit/file/albert-OrionContent/Folder/orion.client/",
+			      "ConfigLocation": "/gitapi/config/clone/file/albert-OrionContent/Folder/orion.client/",
+			      "ContentLocation": "/file/albert-OrionContent/Folder/orion.client/",
+			      "DiffLocation": "/gitapi/diff/Default/file/albert-OrionContent/Folder/orion.client/",
+			      "GitUrl": "https://github.com/albertcui/orion.client.git",
+			      "HeadLocation": "/gitapi/commit/HEAD/file/albert-OrionContent/Folder/orion.client/",
+			      "IndexLocation": "/gitapi/index/file/albert-OrionContent/Folder/orion.client/",
+			      "Location": "/gitapi/clone/file/albert-OrionContent/Folder/orion.client/",
+			      "Name": "orion.client",
+			      "RemoteLocation": "/gitapi/remote/file/albert-OrionContent/Folder/orion.client/",
+			      "StashLocation": "/gitapi/stash/file/albert-OrionContent/Folder/orion.client/",
+			      "StatusLocation": "/gitapi/status/file/albert-OrionContent/Folder/orion.client/",
+			      "TagLocation": "/gitapi/tag/file/albert-OrionContent/Folder/orion.client/",
+			      "Type": "Clone"
+			    },
+			    {
+			      "BranchLocation": "/gitapi/branch/file/albert-OrionContent/Folder/orion.server/",
+			      "CommitLocation": "/gitapi/commit/file/albert-OrionContent/Folder/orion.server/",
+			      "ConfigLocation": "/gitapi/config/clone/file/albert-OrionContent/Folder/orion.server/",
+			      "ContentLocation": "/file/albert-OrionContent/Folder/orion.server/",
+			      "DiffLocation": "/gitapi/diff/Default/file/albert-OrionContent/Folder/orion.server/",
+			      "GitUrl": "https://github.com/albertcui/orion.server.git",
+			      "HeadLocation": "/gitapi/commit/HEAD/file/albert-OrionContent/Folder/orion.server/",
+			      "IndexLocation": "/gitapi/index/file/albert-OrionContent/Folder/orion.server/",
+			      "Location": "/gitapi/clone/file/albert-OrionContent/Folder/orion.server/",
+			      "Name": "orion.server",
+			      "RemoteLocation": "/gitapi/remote/file/albert-OrionContent/Folder/orion.server/",
+			      "StashLocation": "/gitapi/stash/file/albert-OrionContent/Folder/orion.server/",
+			      "StatusLocation": "/gitapi/status/file/albert-OrionContent/Folder/orion.server/",
+			      "TagLocation": "/gitapi/tag/file/albert-OrionContent/Folder/orion.server/",
+			      "Type": "Clone"
+			    }
+			  ],
+			  "Type": "Clone"
 			});
 			res.setHeader('Content-Type', 'application/json');
 			res.setHeader('Content-Length', ws.length);
 			res.end(ws);
 		},
 		POST: function(req, res, next, rest) {
+			console.log("potato")
 			writeError(403, res)
 		},
 		PUT: function(req, res, next, rest) {

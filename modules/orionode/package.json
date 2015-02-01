@@ -5,7 +5,7 @@
   "homepage": "http://eclipse.org/orion/",
   "bugs": "https://bugs.eclipse.org/bugs/enter_bug.cgi?product=Orion&component=Node",
   "dependencies": {
-    "connect": "~2.4.6",
+    "connect": "~2.8",
     "node-inspector": "~0.7.4",
     "socket.io": "~1.0.4",
     "deferred-fs": "~0.3.2",
