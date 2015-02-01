@@ -9,6 +9,7 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 /*eslint-env node*/
+
 var connect = require('connect');
 var fs = require('fs');
 var util = require('util');
@@ -41,61 +42,71 @@ module.exports = function(options) {
 				finder(workspaceDir).on('directory', function (dir, stat, stop) {
 				    var base = path.basename(dir);
 				    if (base !== '.git') {
-				    	//console.log(dir);
 	    				git.Repository.open(dir)
 						.then(function(repo) {
 							if (repo) {
-								var location = dir.replace(workspaceDir, "Folder");
-								
-								repos.push({
-								  "BranchLocation": "/gitapi/branch/file/" + location,
-							      "CommitLocation": "/gitapi/commit/file/" + location,
-							      "ConfigLocation": "/gitapi/config/clone/file/" + location,
-							      "ContentLocation": "/file/" + location,
-							      "DiffLocation": "/gitapi/diff/Default/file/" + location,
-							      "GitUrl": "https://github.com/albertcui/orion.client.git",
-							      "HeadLocation": "/gitapi/commit/HEAD/file/" + location,
-							      "IndexLocation": "/gitapi/index/file/" + location,
-							      "Location": "/gitapi/clone/file/" + location,
-							      "Name": base,
-							      "RemoteLocation": "/gitapi/remote/file/" + location,
-							      "StashLocation": "/gitapi/stash/file/" + location,
-							      "StatusLocation": "/gitapi/status/file/" + location,
-							      "TagLocation": "/gitapi/tag/file/" + location,
-							      "Type": "Clone"
+								repo.getRemotes()
+								.then(function(remotes){
+									remotes.forEach(function(remote) {
+										if (remote === "origin") {
+											repo.getRemote(remote)
+											.then(function(remote){
+												console.log(remote.url());
+												return remote.url();
+											});
+										}
+									});
+								})
+								.then(function(URL) {
+									var location = dir.replace(workspaceDir, "Folder"); 
+									repos.push({
+									  "BranchLocation": "/gitapi/branch/file/" + location,
+								      "CommitLocation": "/gitapi/commit/file/" + location,
+								      "ConfigLocation": "/gitapi/config/clone/file/" + location,
+								      "ContentLocation": "/file/" + location,
+								      "DiffLocation": "/gitapi/diff/Default/file/" + location,
+								      "GitUrl": URL,
+								      "HeadLocation": "/gitapi/commit/HEAD/file/" + location,
+								      "IndexLocation": "/gitapi/index/file/" + location,
+								      "Location": "/gitapi/clone/file/" + location,
+								      "Name": base,
+								      "RemoteLocation": "/gitapi/remote/file/" + location,
+								      "StashLocation": "/gitapi/stash/file/" + location,
+								      "StatusLocation": "/gitapi/status/file/" + location,
+								      "TagLocation": "/gitapi/tag/file/" + location,
+								      "Type": "Clone"
+									});
 								});
 								return repo.getMasterCommit();
 							}
 						 })
-//						 .then(function(firstCommitOnMaster) {
-//						      // Create a new history event emitter.
-//						      var history = firstCommitOnMaster.history();
-//						      var count = 0;
-//						      history.on("commit", function(commit) {
-//			  					  if (++count >= 2) {
-//							          return;
-//							      }
-//						
-//							      // Show the commit sha.
-//							      console.log("commit " + commit.sha());
-//							
-//							      // Store the author object.
-//							      var author = commit.author();
-//							
-//							      // Display author information.
-//							      console.log("Author:\t" + author.name() + " <", author.email() + ">");
-//							
-//							      // Show the commit date.
-//							      console.log("Date:\t" + commit.date());
-//							
-//							      // Give some space and show the message.
-//							      console.log("\n    " + commit.message());
-//							      
-//							      return;
-//							  });
-//							  
-//							  history.start();
-//						  })
+						 .then(function(firstCommitOnMaster) {
+						      // Create a new history event emitter.
+						      var history = firstCommitOnMaster.history();
+						      var count = 0;
+						      history.on("commit", function(commit) {
+			  					  if (++count >= 2) {
+							          return;
+							      }
+							      // Show the commit sha.
+							      console.log("commit " + commit.sha());
+							      // Store the author object.
+							      var author = commit.author();
+							
+							      // Display author information.
+							      console.log("Author:\t" + author.name() + " <", author.email() + ">");
+							
+							      // Show the commit date.
+							      console.log("Date:\t" + commit.date());
+							
+							      // Give some space and show the message.
+							      console.log("\n    " + commit.message());
+							      
+							      return;
+							  });
+							  
+							  history.start();
+						  })
 					}
 				})
 				.on('end', function() {
