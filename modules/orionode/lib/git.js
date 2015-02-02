@@ -230,8 +230,15 @@ module.exports = function(options) {
 			writeError(403, res);
 		},
 		DELETE: function(req, res, next, rest) {
-			// Would 501 be more appropriate?
-			writeError(403, res);
+			if(rest.indexOf("clone/file/") === 0){
+				var configPath = rest.replace("clone/file", "");
+				console.log("Removing git repository ".concat(workspaceDir.concat(configPath)));
+				rmdir = require('rimraf');
+				rmdir(workspaceDir.concat(configPath), function() {
+					res.statusCode = 200;
+					res.end();
+				});
+			} 
 		}
 	}));
 };
