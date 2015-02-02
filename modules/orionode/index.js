@@ -54,7 +54,7 @@ function startServer(options) {
 				fileRoot: '/file',
 				workspaceDir: workspaceDir
 			}))
-			.use(orionGit({ // Match git API first to avoid body parsing for GET requests
+			.use(orionGit({ 
 				root: '/gitapi',
 				fileRoot: '/file',
 				workspaceDir: workspaceDir

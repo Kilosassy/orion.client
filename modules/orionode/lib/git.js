@@ -158,29 +158,25 @@ module.exports = function(options) {
 						writeError(403, res);
 					}
 				})
-			} else if (rest.indexOf("status/file/") === 0) {
-				var status = new Array();
-				var repoPath = rest.replace("status/file/", "");
-				repoPath = api.join(workspaceDir, repoPath);
-				git.Repository.open(repoPath)
-				.then(function(repo) {
-					console.log(repo.config());
-					repo.config()
-					.then(function(stuff){
-						console.log(stuff);
-					})
-					finder(repoPath).on('file', function (file, stat) {
-						var num = 1;
-//						git.Status.file(num, repo, file.replace(workspaceDir,"."));
-//						console.log(num);
-//						.then(function() {
-//							console.log("rawr");
-//							console.log(num);
-//						})
-					})
-						
-				});
+			} else if (rest.indexOf("branch/file/")===0) {
+				var branches = new Array();
+				
 			}
+//			} else if (rest.indexOf("status/file/") === 0) {
+//				var status = new Array();
+//				var repoPath = rest.replace("status/file/", "");
+//				repoPath = api.join(workspaceDir, repoPath);
+//				git.Repository.open(repoPath)
+//				.then(function(repo) {
+//					finder(repoPath).on('file', function (file, stat) {
+//						var num = 1;
+//						console.log(file.replace(workspaceDir,"."));
+//						console.log(repo);
+//						git.Status.file(num, repo, file.replace(workspaceDir,"."));
+//					})
+//						
+//				});
+//			}
 //			else if (rest.indexOf("config/clone/file/") === 0) {
 //				var configPath = rest.replace("config/clone/file/", "");
 //				configPath = api.join(workspaceDir, configPath);
