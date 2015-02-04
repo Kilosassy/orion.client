@@ -79,6 +79,11 @@ module.exports = function(options) {
 					res.end(JSON.stringify(response));
 				});
 			}
+			if(rest.indexOf("clone/") === 0){
+				console.log("POST RECEIVED"); //XXX: 
+        			console.log(workspaceDir);
+			}	
+			writeError(403, res)
 		},
 		PUT: function(req, res, next, rest) {
 			// Would 501 be more appropriate?
@@ -88,6 +93,10 @@ module.exports = function(options) {
 			if(rest.indexOf("clone/file/") === 0){
 				var configPath = rest.replace("clone/file", "");
 				console.log("Removing git repository ".concat(workspaceDir.concat(configPath)));
+<<<<<<< HEAD
+=======
+				var rmdir = require('rimraf');
+>>>>>>> Added git init skeleton.
 				rmdir(workspaceDir.concat(configPath), function() {
 					res.statusCode = 200;
 					res.end();
