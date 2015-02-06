@@ -14,7 +14,7 @@ var git = require('nodegit');
 var finder = require('findit');
 var path = require("path");
 
-function clone(workspaceDir, fileRoot, req, res, next, rest) {
+function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 	var repos = new Array();
 	finder(workspaceDir).on('directory', function (dir, stat, stop) {
 	    var base = path.basename(dir);
@@ -103,5 +103,5 @@ function clone(workspaceDir, fileRoot, req, res, next, rest) {
 }
 
 module.exports = {
-	clone: clone
+	getClone: getClone
 }
