@@ -21,6 +21,10 @@ var remotes = require('./git/remotes');
 var status = require('./git/status');
 var config = require('./git/config');
 var rmdir = require('rimraf');
+var git = require('nodegit');
+var finder = require('findit');
+var path = require("path");
+var Clone = git.Clone;
 
 module.exports = function(options) {
 	var workspaceRoot = options.root;
@@ -32,12 +36,138 @@ module.exports = function(options) {
 	.use(resource(workspaceRoot, {
 		GET: function(req, res, next, rest) {
 			if (rest === '') {
-				console.log("nope")
+				console.log("nope");
 			} else if (rest.indexOf("clone/workspace/") === 0) {
 				clone.getClone(workspaceDir, fileRoot, req, res, next, rest);
 			}
 			else if (rest.indexOf("remote/file/") === 0) {
 				remotes.getRemotes(workspaceDir, fileRoot, req, res, next, rest);
+				console.log("matched");
+				var repos = [];
+				finder(workspaceDir).on('directory', function (dir, stat, stop) {
+				    var base = path.basename(dir);
+				    if (base !== '.git') {
+	    				git.Repository.open(dir)
+						.then(function(repo) {
+							if (repo) {
+								var location = api.join(fileRoot, dir.replace(workspaceDir + "/", ""));
+								var repoInfo = {
+									"BranchLocation": "/gitapi/branch" + location,
+									"CommitLocation": "/gitapi/commit" + location,
+									"ConfigLocation": "/gitapi/config/clone" + location,
+									"ContentLocation": location,
+									"DiffLocation": "/gitapi/diff/Default" + location,
+									"HeadLocation": "/gitapi/commit/HEAD" + location,
+									"IndexLocation": "/gitapi/index" + location,
+									"Location": "/gitapi/clone" + location,
+									"Name": base,
+									"RemoteLocation": "/gitapi/remote" + location,
+									"StashLocation": "/gitapi/stash" + location,
+									"StatusLocation": "/gitapi/status" + location,
+									"TagLocation": "/gitapi/tag" + location,
+									"Type": "Clone"
+								};
+								repo.getRemotes()
+								.then(function(remotes){
+									remotes.forEach(function(remote) {
+										if (remote === "origin") {
+											repo.getRemote(remote)
+											.then(function(remote){
+												repoInfo.GitUrl = remote.url();
+												return;
+											});
+										} 
+										
+									});
+								})
+								.then(function() {
+									repos.push(repoInfo);
+								});
+								return repo.getMasterCommit();
+							}
+						 })
+						 .then(function(firstCommitOnMaster) {
+						      // Create a new history event emitter.
+						      var history = firstCommitOnMaster.history();
+						      var count = 0;
+						      history.on("commit", function(commit) {
+			  					  if (++count >= 2) {
+							          return;
+							      }
+							      // Show the commit sha.
+							      console.log("commit " + commit.sha());
+							      // Store the author object.
+							      var author = commit.author();
+							
+							      // Display author information.
+							      console.log("Author:\t" + author.name() + " <", author.email() + ">");
+							
+							      // Show the commit date.
+							      console.log("Date:\t" + commit.date());
+							
+							      // Give some space and show the message.
+							      console.log("\n    " + commit.message());
+							      
+							      return;
+							  });
+							  
+							  history.start();
+						  });
+					}
+				})
+				.on('end', function() {
+					var resp = JSON.stringify({
+						"Children": repos,
+						"Type": "Clone"
+					});
+					res.statusCode = 200;
+					res.setHeader('Content-Type', 'application/json');
+					res.setHeader('Content-Length', resp.length);
+					res.end(resp);
+				})
+				.on('error', function() {
+					writeError(403, res);
+				});
+			}
+			else if (rest.indexOf("remote/file/") === 0) {
+				var remotes = [];
+				var repoPath = rest.replace("remote/file/", "");
+				repoPath = api.join(workspaceDir, repoPath);
+				git.Repository.open(repoPath)
+				.then(function(repo) {
+					if (repo) {
+						var location = api.join(fileRoot, repoPath);
+						repo.getRemotes()
+						.then(function(remotes){
+							remotes.forEach(function(remote) {
+								repo.getRemote(remote)
+								.then(function(remote){
+									remotes.push({
+										"CloneLocation": "/gitapi/clone"+location,
+										"IsGerrit": "false", // should check 
+										"GitUrl": remote.url(),
+										"Name": remote.name(),
+										"Location": location,
+										"Type": "Remote"
+									});
+								})
+							});
+						})
+						.then(function() {
+							var resp = JSON.stringify({
+								"Children": remotes,
+								"Type": "Remote"
+							});
+							res.statusCode = 200;
+							res.setHeader('Content-Type', 'application/json');
+							res.setHeader('Content-Length', resp.length);
+							res.end(resp);
+						});
+					}
+					else {
+						writeError(403, res);
+					}
+				})
 			} else if (rest.indexOf("branch/file/")===0) {
 				var branches = new Array();
 			} else if (rest.indexOf("status/file/") === 0) {
@@ -50,7 +180,24 @@ module.exports = function(options) {
 			}
 		},
 		POST: function(req, res, next, rest) {
-			writeError(403, res)
+			if(rest.indexOf("git/clone") === 0) {
+				var req_data = req.body;
+				var url = req_data.GitUrl;
+				console.log("trying to clone " + url);
+				Clone.clone(url, workspaceDir).then(function(repo) {
+					console.log("successfully cloned " + url);
+					return repo.id;
+				}).then(function(id) {
+					response = {
+						"Id": 1234,
+						"Location": workspaceDir,
+						"Message": "Cloning " + workspaceDir + url,
+						"PercentComplete": 0,
+						"Running": true
+					};
+					res.end(JSON.stringify(response));
+				});
+			}
 		},
 		PUT: function(req, res, next, rest) {
 			// Would 501 be more appropriate?
