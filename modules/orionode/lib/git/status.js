@@ -15,19 +15,37 @@ var finder = require('findit');
 var path = require("path");
 
 function getStatus(workspaceDir, fileRoot, req, res, next, rest) {				
-		var status = new Array();
+		var status = [];
 		var repoPath = rest.replace("status/file/", "");
 		repoPath = api.join(workspaceDir, repoPath);
+		console.log(repoPath);
 		git.Repository.open(repoPath)
-		.then(function(repo) {
-			finder(repoPath).on('file', function (file, stat) {
-				var num = 1;
-				console.log(file.replace(workspaceDir,"."));
-				console.log(repo);
-				git.Status.file(num, repo, file.replace(workspaceDir,"."));
-			})
-				
+		  .then(function(repo) {
+		    repo.getStatus().then(function(statuses) {
+		      function statusToText(status) {
+		        var added = [],
+		        	changed = [],
+		        	conflicting = [],
+		        	missing = [],
+		        	modified = [],
+		        	removed = [],
+		        	untracked = [];
+		        	
+		        if (status.isNew()) { untracked.push("NEW"); }
+		        if (status.isModified()) { modified.push("MODIFIED"); }
+		        if (status.isTypechange()) { words.push("TYPECHANGE"); }
+		        if (status.isRenamed()) { words.push("RENAMED"); }
+		        if (status.isIgnored()) { words.push("IGNORED"); }
+		
+		        return words.join(" ");
+		      }
+		
+		      statuses.forEach(function(file) {
+		        console.log(file.path() + " " + statusToText(file));
+		      });
+		    });
 		});
+
 }
 
 module.exports = {

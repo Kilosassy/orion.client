@@ -15,7 +15,7 @@ var finder = require('findit');
 var path = require("path");
 
 function getClone(workspaceDir, fileRoot, req, res, next, rest) {
-	var repos = new Array();
+	var repos = [];
 	finder(workspaceDir).on('directory', function (dir, stat, stop) {
 	    var base = path.basename(dir);
 	    if (base !== '.git') {
@@ -58,33 +58,33 @@ function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 					return repo.getMasterCommit();
 				}
 			 })
-			 .then(function(firstCommitOnMaster) {
-			      // Create a new history event emitter.
-			      var history = firstCommitOnMaster.history();
-			      var count = 0;
-			      history.on("commit", function(commit) {
-  					  if (++count >= 2) {
-				          return;
-				      }
-				      // Show the commit sha.
-				      console.log("commit " + commit.sha());
-				      // Store the author object.
-				      var author = commit.author();
-				
-				      // Display author information.
-				      console.log("Author:\t" + author.name() + " <", author.email() + ">");
-				
-				      // Show the commit date.
-				      console.log("Date:\t" + commit.date());
-				
-				      // Give some space and show the message.
-				      console.log("\n    " + commit.message());
-				      
-				      return;
-				  });
-				  
-				  history.start();
-			  })
+//			 .then(function(firstCommitOnMaster) {
+//			      // Create a new history event emitter.
+//			      var history = firstCommitOnMaster.history();
+//			      var count = 0;
+//			      history.on("commit", function(commit) {
+//  					  if (++count >= 2) {
+//				          return;
+//				      }
+//				      // Show the commit sha.
+//				      console.log("commit " + commit.sha());
+//				      // Store the author object.
+//				      var author = commit.author();
+//				
+//				      // Display author information.
+//				      console.log("Author:\t" + author.name() + " <", author.email() + ">");
+//				
+//				      // Show the commit date.
+//				      console.log("Date:\t" + commit.date());
+//				
+//				      // Give some space and show the message.
+//				      console.log("\n    " + commit.message());
+//				      
+//				      return;
+//				  });
+//				  
+//				  history.start();
+//			  })
 		}
 	})
 	.on('end', function() {

@@ -13,7 +13,7 @@ var api = require('../api'), writeError = api.writeError;
 var git = require('nodegit');
 
 function getRemotes(workspaceDir, fileRoot, req, res, next, rest) {
-		var remotes = new Array();
+		var remotes = [];
 		var repoPath = rest.replace("remote/file/", "");
 		repoPath = api.join(workspaceDir, repoPath);
 		git.Repository.open(repoPath)

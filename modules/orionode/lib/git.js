@@ -18,6 +18,7 @@ var fileUtil = require('./fileUtil');
 var resource = require('./resource');
 var clone = require('./git/clone');
 var remotes = require('./git/remotes');
+var branches = require('./git/branches');
 var status = require('./git/status');
 var config = require('./git/config');
 var rmdir = require('rimraf');
@@ -169,9 +170,9 @@ module.exports = function(options) {
 					}
 				})
 			} else if (rest.indexOf("branch/file/")===0) {
-				var branches = new Array();
+				branches.getBranches(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("status/file/") === 0) {
-//				status.getStatus(workspaceDir, fileRoot, req, res, next, rest);
+				status.getStatus(workspaceDir, fileRoot, req, res, next, rest);
 			}
 			else if (rest.indexOf("config/clone/file/") === 0) {
 //				config.getConfig(workspaceDir, fileRoot, req, res, next, rest);
