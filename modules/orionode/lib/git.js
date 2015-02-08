@@ -61,14 +61,20 @@ module.exports = function(options) {
 					console.log("successfully cloned " + url);
 					return repo.id;
 				}).then(function(id) {
+					//we got the repo
+					console.log("POST git/clone: sucess!");
 					response = {
-						"Id": 1234,
+						"Id": id,
 						"Location": workspaceDir,
 						"Message": "Cloning " + workspaceDir + url,
 						"PercentComplete": 0,
 						"Running": true
 					};
 					res.end(JSON.stringify(response));
+				}, function(err) {
+					// some kind of error with cloning a repo
+					console.log("POST git/clone: failure!");
+					writeError(403, res);
 				});
 			}
 		},
