@@ -54,28 +54,7 @@ module.exports = function(options) {
 		},
 		POST: function(req, res, next, rest) {
 			if(rest.indexOf("git/clone") === 0) {
-				var req_data = req.body;
-				var url = req_data.GitUrl;
-				console.log("trying to clone " + url);
-				Clone.clone(url, workspaceDir).then(function(repo) {
-					console.log("successfully cloned " + url);
-					return repo.id;
-				}).then(function(id) {
-					//we got the repo
-					console.log("POST git/clone: sucess!");
-					response = {
-						"Id": id,
-						"Location": workspaceDir,
-						"Message": "Cloning " + workspaceDir + url,
-						"PercentComplete": 0,
-						"Running": true
-					};
-					res.end(JSON.stringify(response));
-				}, function(err) {
-					// some kind of error with cloning a repo
-					console.log("POST git/clone: failure!");
-					writeError(403, res);
-				});
+				clone.postClone(workspaceDir, fileRoot, req, res, next, rest);
 			}
 		},
 		PUT: function(req, res, next, rest) {

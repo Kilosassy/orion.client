@@ -13,6 +13,7 @@ var api = require('../api'), writeError = api.writeError;
 var git = require('nodegit');
 var finder = require('findit');
 var path = require("path");
+var Clone = git.Clone;
 
 function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 	var repos = [];
@@ -47,7 +48,7 @@ function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 								.then(function(remote){
 									repoInfo.GitUrl = remote.url();
 									return;
-								})
+								});
 							} 
 							
 						});
@@ -57,7 +58,7 @@ function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 					});
 					return repo.getMasterCommit();
 				}
-			 })
+			 });
 //			 .then(function(firstCommitOnMaster) {
 //			      // Create a new history event emitter.
 //			      var history = firstCommitOnMaster.history();
@@ -98,10 +99,42 @@ function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 		res.end(resp);
 	})
 	.on('error', function() {
-		writeError(403, res)
-	})
+		writeError(403, res);
+	});
+}
+
+function postClone(workspaceDir, fileRoot, req, res, next, rest) {
+	var req_data = req.body;
+	var url = req_data.GitUrl;
+	var clone_dir = workspaceDir.substring(0, workspaceDir.lastIndexOf("/")) + url.substring(url.lastIndexOf("/"), url.indexOf(".git"));
+
+	console.log("trying to clone into " + clone_dir);
+	Clone.clone(url, clone_dir).then(function(repo) {
+		console.log("successfully cloned " + url);
+		return repo.id;
+	}).then(function(id) {
+		//we got the repo
+		console.log("POST git/clone: sucess!");
+		response = {
+			"Id": id,
+			"Location": workspaceDir,
+			"Message": "Cloning " + workspaceDir + url,
+			"PercentComplete": 0,
+			"Running": true
+		};
+		res.statusCode = 200;
+		res.setHeader('Content-Type', 'application/json');
+		res.setHeader('Content-Length', resp.length);
+		res.end(JSON.stringify(response));
+	}, function(err) {
+		// some kind of error with cloning a repo
+		console.log("POST git/clone: failure!");
+		console.log(err);
+		writeError(403, res);
+	});
 }
 
 module.exports = {
-	getClone: getClone
-}
+	getClone: getClone,
+	postClone: postClone
+};
