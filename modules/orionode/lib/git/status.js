@@ -33,9 +33,6 @@ function getStatus(workspaceDir, fileRoot, req, res, next, rest) {
 
                     function returnContent(file) {
                     	var orionFilePath = api.join(rest.replace("status/file/", ""), file.path().replace(workspaceDir,""));
-                    	console.log("workspaceDir=" + workspaceDir);
-                    	console.log("originalFilePath=" + file.path());
-                    	console.log("orionFilePath="+orionFilePath);
                         return {
                             "Git": {
                                 "CommitLocation": "/gitapi/commit/HEAD/file/" + orionFilePath,

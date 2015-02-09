@@ -21,10 +21,12 @@ var remotes = require('./git/remotes');
 var branches = require('./git/branches');
 var status = require('./git/status');
 var config = require('./git/config');
+var index = require('./git/index');
 var rmdir = require('rimraf');
 var git = require('nodegit');
 var finder = require('findit');
 var path = require("path");
+var redirect = require('connect-redirection');
 var Clone = git.Clone;
 
 module.exports = function(options) {
@@ -34,6 +36,7 @@ module.exports = function(options) {
 	if (!workspaceRoot) { throw 'options.root path required'; }
 	return connect()
 	.use(connect.json())
+	.use(redirect())
 	.use(resource(workspaceRoot, {
 		GET: function(req, res, next, rest) {
 			if (rest === '') {
@@ -48,6 +51,8 @@ module.exports = function(options) {
 				status.getStatus(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("config/clone/file/") === 0) {
 //				config.getConfig(workspaceDir, fileRoot, req, res, next, rest);
+			} else if (rest.indexOf("index/file/") === 0) {
+				res.redirect(rest.replace("index", ""));
 			} else {
 				writeError(403, res);
 			}
@@ -55,6 +60,22 @@ module.exports = function(options) {
 		POST: function(req, res, next, rest) {
 			if(rest.indexOf("git/clone") === 0) {
 				clone.postClone(workspaceDir, fileRoot, req, res, next, rest);
+				var req_data = req.body;
+				var url = req_data.GitUrl;
+				console.log("trying to clone " + url);
+				Clone.clone(url, workspaceDir).then(function(repo) {
+					console.log("successfully cloned " + url);
+					return repo.id;
+				}).then(function(id) {
+					var response = {
+						"Id": 1234,
+						"Location": workspaceDir,
+						"Message": "Cloning " + workspaceDir + url,
+						"PercentComplete": 0,
+						"Running": true
+					};
+					res.end(JSON.stringify(response));
+				});
 			}
 		},
 		PUT: function(req, res, next, rest) {
