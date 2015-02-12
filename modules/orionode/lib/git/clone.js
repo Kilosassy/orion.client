@@ -15,6 +15,7 @@ var finder = require('findit');
 var path = require("path");
 var Clone = git.Clone;
 var mkdirp = require("mkdirp");
+var exec = require('child_process').exec;
 
 function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 	var repos = [];
@@ -152,6 +153,29 @@ function postClone(workspaceDir, fileRoot, req, res, next, rest) {
 	}else if (req_data.hasOwnProperty("Location")) {
 		var init_dir = the_dir + req_data["Location"];
 		console.log("IN INIT");
+
+		mkdirp(init_dir, function (err) {
+    		if (err) {
+    			console.error(err);
+    		} else {
+    			console.log("directory created, now run with git init");
+    			var child = exec('git init',
+					function (error, stdout, stderr) {
+						if (error !== null) {
+						  console.log('exec error: ' + error);
+						} else {
+							console.log("POST git/clone: sucess!");
+							response = {
+								"Location": init_dir
+							};
+							res.statusCode = 200;
+							res.setHeader('Content-Type', 'application/json');
+							res.setHeader('Content-Length', resp.length);
+							res.end(JSON.stringify(response));
+						}
+					});
+    		} 
+}		);
 	}
 }
 
