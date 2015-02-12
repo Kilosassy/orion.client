@@ -21,7 +21,6 @@ var remotes = require('./git/remotes');
 var branches = require('./git/branches');
 var status = require('./git/status');
 var config = require('./git/config');
-var index = require('./git/index');
 var rmdir = require('rimraf');
 var git = require('nodegit');
 var finder = require('findit');
