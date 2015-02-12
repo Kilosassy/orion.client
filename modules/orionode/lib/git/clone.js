@@ -14,6 +14,7 @@ var git = require('nodegit');
 var finder = require('findit');
 var path = require("path");
 var Clone = git.Clone;
+var mkdirp = require("mkdirp");
 
 function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 	var repos = [];
@@ -106,32 +107,52 @@ function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 function postClone(workspaceDir, fileRoot, req, res, next, rest) {
 	var req_data = req.body;
 	var url = req_data.GitUrl;
-	var clone_dir = workspaceDir.substring(0, workspaceDir.lastIndexOf("/")) + url.substring(url.lastIndexOf("/"), url.indexOf(".git"));
+	var the_dir = workspaceDir.substring(0, workspaceDir.lastIndexOf("/"));
+	var cache = [];
+	/*console.log("POST clone with data: " + JSON.stringify(req, function(key, value) {
+	    if (typeof value === 'object' && value !== null) {
+	        if (cache.indexOf(value) !== -1) {
+	            // Circular reference found, discard key
+	            return;
+	        }
+	        // Store value in our collection
+	        cache.push(value);
+	    }
+	    return value;
+	}));*/
+	// We want to clone a repo
+	if (req_data.hasOwnProperty("GitUrl")) {
+		var clone_dir = the_dir + url.substring(url.lastIndexOf("/"), url.indexOf(".git"));
 
-	console.log("trying to clone into " + clone_dir);
-	Clone.clone(url, clone_dir).then(function(repo) {
-		console.log("successfully cloned " + url);
-		return repo.id;
-	}).then(function(id) {
-		//we got the repo
-		console.log("POST git/clone: sucess!");
-		response = {
-			"Id": id,
-			"Location": workspaceDir,
-			"Message": "Cloning " + workspaceDir + url,
-			"PercentComplete": 0,
-			"Running": true
-		};
-		res.statusCode = 200;
-		res.setHeader('Content-Type', 'application/json');
-		res.setHeader('Content-Length', resp.length);
-		res.end(JSON.stringify(response));
-	}, function(err) {
-		// some kind of error with cloning a repo
-		console.log("POST git/clone: failure!");
-		console.log(err);
-		writeError(403, res);
-	});
+		console.log("trying to clone into " + clone_dir);
+		Clone.clone(url, clone_dir).then(function(repo) {
+			console.log("successfully cloned " + url);
+			return repo.id;
+		}).then(function(id) {
+			//we got the repo
+			console.log("POST git/clone: sucess!");
+			response = {
+				"Id": id,
+				"Location": workspaceDir,
+				"Message": "Cloning " + workspaceDir + url,
+				"PercentComplete": 0,
+				"Running": true
+			};
+			res.statusCode = 200;
+			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Length', resp.length);
+			res.end(JSON.stringify(response));
+		}, function(err) {
+			// some kind of error with cloning a repo
+			console.log("POST git/clone: failure!");
+			console.log(err);
+			writeError(403, res);
+		});
+	// We want to init a new repo
+	}else if (req_data.hasOwnProperty("Location")) {
+		var init_dir = the_dir + req_data["Location"];
+		console.log("IN INIT");
+	}
 }
 
 module.exports = {
