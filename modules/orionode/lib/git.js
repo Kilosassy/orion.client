@@ -21,6 +21,7 @@ var remotes = require('./git/remotes');
 var branches = require('./git/branches');
 var status = require('./git/status');
 var config = require('./git/config');
+var tags = require('./git/tags');
 var rmdir = require('rimraf');
 var git = require('nodegit');
 var finder = require('findit');
@@ -52,6 +53,8 @@ module.exports = function(options) {
 //				config.getConfig(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("index/file/") === 0) {
 				res.redirect(rest.replace("index", ""));
+			} else if (rest.indexOf("tag/file/") === 0) {
+				tags.getTags(workspaceDir, fileRoot, req, res, next, rest);
 			} else {
 				writeError(403, res);
 			}
