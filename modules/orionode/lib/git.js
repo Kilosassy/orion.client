@@ -62,7 +62,7 @@ module.exports = function(options) {
 		POST: function(req, res, next, rest) {
 			if(rest.indexOf("git/clone") === 0) {
 				clone.postClone(workspaceDir, fileRoot, req, res, next, rest);
-			} else {	
+			}else {	
 				writeError(403, res);
 			}
 		},

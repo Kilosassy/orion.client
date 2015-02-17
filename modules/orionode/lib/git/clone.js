@@ -156,7 +156,8 @@ function postClone(workspaceDir, fileRoot, req, res, next, rest) {
 
 		mkdirp(init_dir, function (err) {
     		if (err) {
-    			console.error(err);
+				writeError(409, res);
+				console.log(err);
     		} else {
     			console.log("directory created, now run with git init");
     			var child = exec('git init',
