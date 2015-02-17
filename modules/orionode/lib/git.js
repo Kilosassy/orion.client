@@ -80,10 +80,28 @@ module.exports = function(options) {
 				});
 			}
 			if(rest.indexOf("clone/") === 0){
-				console.log("POST RECEIVED"); //XXX: 
-        			console.log(workspaceDir);
-			}	
-			writeError(403, res)
+				var initDir = workspaceDir + '/' + req.body.Name;
+				console.log("Trying to init " + initDir);
+				fs.mkdir(initDir, function(err){
+					if(err){
+						writeError(409, res);
+						console.log(err);
+					}
+				}); 
+				git.Repository.init(initDir, 0)
+					.then(  function(repo) {
+							var response = {
+								"Location": initDir
+							}
+							res.statusCode = 201;
+							res.end(JSON.stringify(response));
+						},
+						function(err) {
+										console.log(err);
+						});
+			} else {	
+				writeError(403, res)
+			}
 		},
 		PUT: function(req, res, next, rest) {
 			// Would 501 be more appropriate?
@@ -92,11 +110,8 @@ module.exports = function(options) {
 		DELETE: function(req, res, next, rest) {
 			if(rest.indexOf("clone/file/") === 0){
 				var configPath = rest.replace("clone/file", "");
-				console.log("Removing git repository ".concat(workspaceDir.concat(configPath)));
-<<<<<<< HEAD
-=======
+				console.log("Removing git repository " + workspaceDir + configPath);
 				var rmdir = require('rimraf');
->>>>>>> Added git init skeleton.
 				rmdir(workspaceDir.concat(configPath), function() {
 					res.statusCode = 200;
 					res.end();
