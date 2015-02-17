@@ -16,6 +16,7 @@ var path = require("path");
 var Clone = git.Clone;
 var mkdirp = require("mkdirp");
 var exec = require('child_process').exec;
+var fs = require('fs');
 
 function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 	var repos = [];
@@ -105,6 +106,29 @@ function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 	});
 }
 
+function postInit(workspaceDir, req, res) {
+	var initDir = workspaceDir + '/' + req.body.Name;
+
+        console.log("Trying to init " + initDir);
+        fs.mkdir(initDir, function(err){
+				if(err){
+                                	writeError(409, res);
+                                        console.log(err);
+                                }
+                          });
+	git.Repository.init(initDir, 0)
+        .then(function(repo) {
+        	var response = {
+                	"Location": initDir
+                }
+                res.statusCode = 201;
+                res.end(JSON.stringify(response));
+              },
+              function(err) {
+                console.log(err);
+              });
+}
+
 function postClone(workspaceDir, fileRoot, req, res, next, rest) {
 	var req_data = req.body;
 	var url = req_data.GitUrl;
@@ -122,65 +146,36 @@ function postClone(workspaceDir, fileRoot, req, res, next, rest) {
 	    return value;
 	}));*/
 	// We want to clone a repo
-	if (req_data.hasOwnProperty("GitUrl")) {
-		var clone_dir = the_dir + url.substring(url.lastIndexOf("/"), url.indexOf(".git"));
+	var clone_dir = the_dir + url.substring(url.lastIndexOf("/"), url.indexOf(".git"));
 
-		console.log("trying to clone into " + clone_dir);
-		Clone.clone(url, clone_dir).then(function(repo) {
-			console.log("successfully cloned " + url);
-			return repo.id;
-		}).then(function(id) {
-			//we got the repo
-			console.log("POST git/clone: sucess!");
-			response = {
-				"Id": id,
-				"Location": workspaceDir,
-				"Message": "Cloning " + workspaceDir + url,
-				"PercentComplete": 0,
-				"Running": true
-			};
-			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
-			res.setHeader('Content-Length', resp.length);
-			res.end(JSON.stringify(response));
-		}, function(err) {
-			// some kind of error with cloning a repo
-			console.log("POST git/clone: failure!");
-			console.log(err);
-			writeError(403, res);
-		});
-	// We want to init a new repo
-	}else if (req_data.hasOwnProperty("Location")) {
-		var init_dir = the_dir + req_data["Location"];
-		console.log("IN INIT");
-
-		mkdirp(init_dir, function (err) {
-    		if (err) {
-				writeError(409, res);
-				console.log(err);
-    		} else {
-    			console.log("directory created, now run with git init");
-    			var child = exec('git init',
-					function (error, stdout, stderr) {
-						if (error !== null) {
-						  console.log('exec error: ' + error);
-						} else {
-							console.log("POST git/clone: sucess!");
-							response = {
-								"Location": init_dir
-							};
-							res.statusCode = 200;
-							res.setHeader('Content-Type', 'application/json');
-							res.setHeader('Content-Length', resp.length);
-							res.end(JSON.stringify(response));
-						}
-					});
-    		} 
-}		);
-	}
+	console.log("trying to clone into " + clone_dir);
+	Clone.clone(url, clone_dir).then(function(repo) {
+		console.log("successfully cloned " + url);
+		return repo.id;
+	}).then(function(id) {
+	//we got the repo
+	console.log("POST git/clone: sucess!");
+	response = {
+		"Id": id,
+		"Location": workspaceDir,
+		"Message": "Cloning " + workspaceDir + url,
+		"PercentComplete": 0,
+		"Running": true
+	};
+	res.statusCode = 200;
+	res.setHeader('Content-Type', 'application/json');
+	res.setHeader('Content-Length', resp.length);
+	res.end(JSON.stringify(response));
+	}, function(err) {
+		// some kind of error with cloning a repo
+		console.log("POST git/clone: failure!");
+		console.log(err);
+		writeError(403, res);
+	  });
 }
 
 module.exports = {
 	getClone: getClone,
-	postClone: postClone
+	postClone: postClone,
+	postInit: postInit
 };
