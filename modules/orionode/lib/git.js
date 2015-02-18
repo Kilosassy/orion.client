@@ -16,6 +16,7 @@ var util = require('util');
 var api = require('./api'), writeError = api.writeError;
 var fileUtil = require('./fileUtil');
 var resource = require('./resource');
+var add = require('./git/add');
 var clone = require('./git/clone');
 var remotes = require('./git/remotes');
 var branches = require('./git/branches');
@@ -66,10 +67,14 @@ module.exports = function(options) {
 			if(rest.indexOf("clone/") === 0){
 				clone.postInit(workspaceDir, req, res);
 			} else {	
-				writeError(403, res)
+				writeError(403, res);
 			}
 		},
 		PUT: function(req, res, next, rest) {
+			console.log("RECIEVED PUT REQUESTTTT: " + rest);
+			if (rest.indexOf("index/file/A/") === 0) {
+				add.putStage(workspaceDir, fileRoot, req, res, next, rest);
+			}
 			// Would 501 be more appropriate?
 			writeError(403, res);
 		},
