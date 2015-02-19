@@ -71,12 +71,12 @@ module.exports = function(options) {
 			}
 		},
 		PUT: function(req, res, next, rest) {
-			console.log("RECIEVED PUT REQUESTTTT: " + rest);
 			if (rest.indexOf("index/file/A/") === 0) {
 				add.putStage(workspaceDir, fileRoot, req, res, next, rest);
+			} else {
+				// Would 501 be more appropriate?
+				writeError(403, res);
 			}
-			// Would 501 be more appropriate?
-			writeError(403, res);
 		},
 		DELETE: function(req, res, next, rest) {
 			if(rest.indexOf("clone/file/") === 0){

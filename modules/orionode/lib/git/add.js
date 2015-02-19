@@ -15,6 +15,7 @@ var finder = require('findit');
 var path = require("path");
 
 function stageFile(workspaceDir, rest) {
+        console.log("rest: " + rest);
         var repo;
         var index;
 
@@ -22,6 +23,9 @@ function stageFile(workspaceDir, rest) {
         var it = rest.substring(rest.indexOf("/A/") + 3, 3 + rest.indexOf("/A/") + start.indexOf("/"));
         var dir = path.join(workspaceDir, it);
         var filename = rest.substring(1 + 3 + rest.indexOf("/A/") + start.indexOf("/"));
+
+        console.log(dir + "/.git");
+        console.log(filename);
 
         git.Repository.open(dir + "/.git")
         .then(function(repoResult) {
@@ -57,7 +61,7 @@ function stageFile(workspaceDir, rest) {
 
 function putStage(workspaceDir, fileRoot, req, res, next, rest) {
     var req_data = req.body;
-    var cache = [];
+    console.log(req_data);
     if (req_data.hasOwnProperty("Path")) {
         for (var i = 0; i < req_data.Path.length; i++) {
             stageFile(workspaceDir, rest + req_data.Path[i]);
