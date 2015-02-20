@@ -16,7 +16,8 @@
     "nodegit": "*",
     "findit": "~2.0.0",
     "connect-redirection": "0.0.1",
-    "mkdirp": "*"
+    "mkdirp": "*",
+    "ini": "~1.3"
   },
   "devDependencies": {
     "mocha": "*",

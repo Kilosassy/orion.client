@@ -13,6 +13,7 @@ var api = require('../api'), writeError = api.writeError;
 var git = require('nodegit');
 var finder = require('findit');
 var path = require("path");
+var ini = require('ini');
 
 function getConfig(workspaceDir, fileRoot, req, res, next, rest) {
 		var configPath = rest.replace("config/clone/file/", "");
