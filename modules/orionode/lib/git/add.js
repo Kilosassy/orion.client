@@ -59,9 +59,54 @@ function stageFile(workspaceDir, rest) {
         });
 }
 
+function unstageFile(workspaceDir, rest) {
+        console.log("rest: " + rest);
+        var repo;
+        var index;
+
+        var start = rest.substring(rest.indexOf("/E/") + 3);
+        var it = rest.substring(rest.indexOf("/E/") + 3, 3 + rest.indexOf("/E/") + start.indexOf("/"));
+        var dir = path.join(workspaceDir, it);
+        var filename = rest.substring(1 + 3 + rest.indexOf("/E/") + start.indexOf("/"));
+
+        console.log(dir + "/.git");
+        console.log(filename);
+
+        git.Repository.open(dir + "/.git")
+        .then(function(repoResult) {
+            repo = repoResult;
+          return repoResult;
+        })
+        .then(function(repo) {
+          return repo.openIndex();
+        })
+        .then(function(indexResult) {
+          index = indexResult;
+          return index.read(1);
+        })
+        .then(function() {
+          // this file is in the root of the directory and doesn't need a full path
+          return index.removeByPath(filename);
+        })
+        .then(function() {
+          // this file is in a subdirectory and can use a relative path
+          return index.removeByPath(path.join(dir, filename));
+        })
+        .then(function() {
+          // this will write both files to the index
+          return index.write();
+        })
+        .then(function() {
+          return index.writeTree();
+        })
+        .done(function(tree) {
+          console.log("done");
+        });
+}
+// Stage files
 function putStage(workspaceDir, fileRoot, req, res, next, rest) {
     var req_data = req.body;
-    console.log(req_data);
+    console.log("trying to stage files");
     if (req_data.hasOwnProperty("Path")) {
         for (var i = 0; i < req_data.Path.length; i++) {
             stageFile(workspaceDir, rest + req_data.Path[i]);
@@ -75,6 +120,24 @@ function putStage(workspaceDir, fileRoot, req, res, next, rest) {
     }
 }
 
+// unstage files
+function postStage(workspaceDir, fileRoot, req, res, next, rest) {
+    var req_data = req.body;
+    console.log("trying to unstage file");
+    if (req_data.hasOwnProperty("Path")) {
+        for (var i = 0; i < req_data.Path.length; i++) {
+            unstageFile(workspaceDir, rest + req_data.Path[i]);
+        }
+        res.statusCode = 200;
+        res.end();
+    } else {
+        unstageFile(workspaceDir, rest);
+        res.statusCode = 200;
+        res.end();
+    }
+}
+
 module.exports = {
-    putStage: putStage
+    putStage: putStage,
+    postStage: postStage
 };
