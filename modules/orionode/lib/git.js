@@ -51,7 +51,7 @@ module.exports = function(options) {
 			} else if (rest.indexOf("status/file/") === 0) {
 				status.getStatus(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("config/clone/file/") === 0) {
-//				config.getConfig(workspaceDir, fileRoot, req, res, next, rest);
+				config.getConfig(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("index/file/") === 0) {
 				res.redirect(rest.replace("index", ""));
 			} else if (rest.indexOf("tag/file/") === 0) {

@@ -14,38 +14,53 @@ var git = require('nodegit');
 var finder = require('findit');
 var path = require("path");
 var ini = require('ini');
+var fs = require('fs');
 
 function getConfig(workspaceDir, fileRoot, req, res, next, rest) {
-		var configPath = rest.replace("config/clone/file/", "");
-		configPath = api.join(workspaceDir, configPath);
-		git.Repository.open(configPath)
+		var repoPath = rest.replace("config/clone/file/", "");
+		var location = api.join(fileRoot, repoPath);
+		repoPath = api.join(workspaceDir, repoPath);
+		git.Repository.open(repoPath)
 		.then(function(repo) {
 			if (repo) {
-				var location = api.join(fileRoot, configPath);
-				repo.getRemotes()
-				.then(function(configs){
-					configs.forEach(function(config) {
-						configs.push({
-							"CloneLocation": "/gitapi/clone/file" + location,
-							"Location": "/gitapi/config"+ key +"clone/file"+location,
-							"Key": key,
-							"Value": '["'+value+'"]',
-							"Type": "Config"
-						});
-					});
-				})
-				.then(function() {
+				fs.readFile(api.join(repoPath, ".git/config"), {encoding:'utf-8'}, function(err, config){
+					config = ini.parse(config)
+					console.log(config)
+					configs = []
+
+					getFullPath(config, "")
+					
 					var resp = JSON.stringify({
 						"Children": configs,
-						"CloneLocation": "/gitapi/clone/file/"+location,
-						"Location": "/gitapi/config/clone/file/"+location,
+						"CloneLocation": "/gitapi/clone"+location,
+						"Location": "/gitapi/config/clone"+location,
 						"Type": "Config"
 					});
 					res.statusCode = 200;
 					res.setHeader('Content-Type', 'application/json');
 					res.setHeader('Content-Length', resp.length);
 					res.end(resp);
-				});
+
+					function getFullPath(config, prefix) {
+						 if (typeof config !== "object") {
+						 	configs.push({
+								"CloneLocation": "/gitapi/clone" + location,
+								"Location": "/gitapi/config"+ prefix +"/clone"+location,
+								"Key": prefix,
+								"Value": [config],
+								"Type": "Config"
+							});
+						 } else {
+						 	for (var property in config) {
+							    if (config.hasOwnProperty(property)) {
+							    	// ini gives reply as 'branch "origin"', remove the ", add period
+							    	var path = property.split('"').join("").replace(" ", ".")
+							        getFullPath(config[property], prefix === "" ? path : prefix + "." + path);
+							    }
+							}
+						 }
+					}
+				})
 			}
 			else {
 				writeError(403, res);
