@@ -103,6 +103,50 @@ function unstageFile(workspaceDir, rest) {
           console.log("done");
         });
 }
+
+function getFileIndex(workspaceDir, fileRoot, req, res, next, rest) {
+        console.log("rest: " + rest);
+        var repo;
+        var index;
+
+        var file = rest.substring(rest.indexOf("index/file/") + "index/file/".length);
+        var end_of_dir = file.substring(0, file.lastIndexOf("/"));
+        var dir = path.join(workspaceDir, end_of_dir);
+        var filename = path.join(path.join(workspaceDir, end_of_dir), file);
+        console.log("eod: " + end_of_dir);
+        console.log(dir + "/.git");
+
+        var result = "";
+        git.Repository.open(dir + "/.git")
+        .then(function(repoResult) {
+            repo = repoResult;
+          return repoResult;
+        })
+        .then(function(repo) {
+          return repo.openIndex();
+        })
+        .then(function(indexResult) {
+          index = indexResult;
+          return index.read(1);
+        })
+        .then(function() {
+          // this file is in the root of the directory and doesn't need a full path
+          var tmp = index.getByPath(filename);
+          result += tmp;
+          return tmp;
+        })
+        .then(function() {
+          // this file is in a subdirectory and can use a relative path
+          var tmp = index.addByPath(path.join(dir, filename));
+          result += tmp;
+        })
+        .done(function(tree) {
+          res.write(result);
+          res.statusCode = 200;
+          res.end();
+        });
+}
+
 // Stage files
 function putStage(workspaceDir, fileRoot, req, res, next, rest) {
     var req_data = req.body;
@@ -139,5 +183,6 @@ function postStage(workspaceDir, fileRoot, req, res, next, rest) {
 
 module.exports = {
     putStage: putStage,
-    postStage: postStage
+    postStage: postStage,
+    getFileIndex: getFileIndex
 };
