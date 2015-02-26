@@ -23,12 +23,12 @@ var branches = require('./git/branches');
 var status = require('./git/status');
 var config = require('./git/config');
 var tags = require('./git/tags');
+var stash = require('./git/stash');
 var rmdir = require('rimraf');
 var git = require('nodegit');
 var finder = require('findit');
 var path = require("path");
 var redirect = require('connect-redirection');
-var Clone = git.Clone;
 
 module.exports = function(options) {
 	var workspaceRoot = options.root;
@@ -58,7 +58,10 @@ module.exports = function(options) {
 				res.redirect(rest.replace("index", ""));
 			} else if (rest.indexOf("tag/file/") === 0) {
 				tags.getTags(workspaceDir, fileRoot, req, res, next, rest);
-			} else {
+			} else if (rest.indexOf("stash/file") === 0) {
+				stash.getStash(workspaceDir, fileRoot, req, res, next, rest);
+			}
+			else {
 				writeError(403, res);
 			}
 		},
