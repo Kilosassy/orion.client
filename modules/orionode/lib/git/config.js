@@ -9,6 +9,7 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 /*eslint-env node */
+/*globals configs:true val:true*/
 var api = require('../api'), writeError = api.writeError;
 var git = require('nodegit');
 var finder = require('findit');
@@ -27,11 +28,9 @@ function getAConfig(workspaceDir, fileRoot, req, res, next, rest) {
 	.then(function(repo) {
 		if (repo) {
 			fs.readFile(api.join(repoPath, ".git/config"), {encoding:'utf-8'}, function(err, config){
-				config = ini.parse(config)
-				console.log(config)
+				var config = ini.parse(config)
 				val = undefined;
 				findInPath(config, "", key);
-				console.log(val)
 				var resp = JSON.stringify({
 					"Key": key,
 					"Location": "/gitapi/" + rest,
@@ -74,7 +73,7 @@ function getConfig(workspaceDir, fileRoot, req, res, next, rest) {
 	.then(function(repo) {
 		if (repo) {
 			fs.readFile(api.join(repoPath, ".git/config"), {encoding:'utf-8'}, function(err, config){
-				config = ini.parse(config)
+				var config = ini.parse(config)
 				configs = []
 
 				getFullPath(config, "")
@@ -117,9 +116,43 @@ function getConfig(workspaceDir, fileRoot, req, res, next, rest) {
 	});
 }
 
+function putConfig(workspaceDir, fileRoot, req, res, next, rest) {
+	var restOfTheUrl = rest.replace("config/", "")
+	var index = restOfTheUrl.indexOf("/")
+	var key = restOfTheUrl.substring(0, index)
+	var repoPath = restOfTheUrl.substring(index+1).replace("clone/file/", "")
+	var location = api.join(fileRoot, repoPath);
+	repoPath = api.join(workspaceDir, repoPath);
+	console.log(req.body);
+	git.Repository.open(repoPath)
+	.then(function(repo) {
+		if (repo) {
+			fs.readFile(api.join(repoPath, ".git/config"), {encoding:'utf-8'}, function(err, config){
+				var config = ini.parse(config)
+				config[key] = req.body.Value;
+				fs.writeFile(api.join(repoPath, ".git/config"),
+					ini.stringify(config, {section: key.substring(0, key.indexOf("."))}),
+					function(err){
+					if (err) throw err;
+					var resp = JSON.stringify({
+						"Key": key,
+						"Location": "/gitapi/config/"+key+"/clone/file/",
+						"Value": req.body.Value
+					});
+					res.statusCode = 200;
+					res.setHeader('Content-Type', 'application/json');
+					res.setHeader('Content-Length', resp.length);
+					res.end(resp);
+				});
+			})
+		}
+	});
+}
+
 
 
 module.exports = {
 	getConfig: getConfig, 
-	getAConfig: getAConfig
+	getAConfig: getAConfig,
+	putConfig: putConfig
 }
