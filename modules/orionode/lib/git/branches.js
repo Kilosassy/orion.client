@@ -18,13 +18,13 @@ var fs = require('fs');
 function getBranches(workspaceDir, fileRoot, req, res, next, rest) {
 	var repoPath = rest.replace("branch/file/", "");
 	var fileDir = repoPath;
+	var gitPath;
     repoPath = api.join(workspaceDir, repoPath);
 		git.Repository.open(repoPath)
 		.then(function(repo) {
 			if (repo) {
-				var gitPath = api.join(repoPath, ".git/refs/heads");
+				gitPath = api.join(repoPath, ".git/refs/heads");
 				fs.readdir(gitPath, getRefs);
-				
 			}
 			else {
 				writeError(403, res);
@@ -35,30 +35,45 @@ function getBranches(workspaceDir, fileRoot, req, res, next, rest) {
 	 	if (err) throw err;
 	 	var branches = [];
 	 	if (files.length !== 0) {
-	 		files.forEach(function(file) {
-	 			//find branch from .git/refs/heads when uncleared first
-	 		});
+	 		files.forEach(function(file) { //check .git/refs/heads firsts and push
+	 			var ID = fs.readFileSync(gitPath+'/'+file, {encoding:'utf-8'});
+	 			branches.push({
+	 				branchName:file.replace("\n", ""),
+	 				branchID:ID.replace("\n",""),
+	 				branchURL: api.join("refs/heads/", file)
+	 				
+	 			});
+ 			});
 	 	}
-	 	else {
-	 		var packedRefs = api.join(repoPath, ".git/packed-refs");
-	 		fs.readFile(packedRefs, {encoding:'utf-8'}, function (err, data) {
-			  if (err) throw err;
-			  var content = data.split("\n");
-			  content.forEach(function(string) {
-			  	string = string.split(" ");
-			  	if (string[1] && string[1].indexOf("refs/heads/") === 0) {
-			  		var originalBranch = string[1];
-			  		var branch = string[1].replace("refs/heads/","");
-			  		branches.push({
+ 		var packedRefs = api.join(repoPath, ".git/packed-refs"); //check .git/packed-refs and if not already in, add to array
+ 		fs.readFile(packedRefs, {encoding:'utf-8'}, function (err, data) {
+		  if (err) throw err;
+		  var content = data.split("\n");
+		  content.forEach(function(string) {
+		  	string = string.split(" ");
+		  	if (string[1] && string[1].indexOf("refs/heads/") === 0) {
+		  		var originalBranch = string[1];
+		  		var branch = string[1].replace("refs/heads/","")
+		  		var seen = false;
+		  		for (var i=0; i<branches.length; i++) {
+		  			if (branches[i].branchName == branch) {
+		  				seen = true;
+		  				break;
+		  			}
+		  		}
+		  		
+		  		if(!seen) {
+		  			branches.push({
 			  			branchName: branch,
 			  			branchId: string[0],
 			  			branchURL: originalBranch
 		  			});
-			  	}
-			  });
-			  sendResponse(branches);
-			 });
-		}
+		  		}
+		  	}
+		  });
+		  console.log(branches);
+		  sendResponse(branches);
+		 });
 	}
 	 
 //	 function checkRemote(branches, sendResponse) {
