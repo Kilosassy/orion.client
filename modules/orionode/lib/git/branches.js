@@ -11,7 +11,6 @@
 /*eslint-env node */
 var api = require('../api'), writeError = api.writeError;
 var git = require('nodegit');
-//var path = require("path");
 var fs = require('fs');
 
 function getBranches(workspaceDir, fileRoot, req, res, next, rest) {
