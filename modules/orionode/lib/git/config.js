@@ -12,7 +12,6 @@
 /*globals configs:true val:true*/
 var api = require('../api'), writeError = api.writeError;
 var git = require('nodegit');
-var path = require("path");
 var ini = require('ini');
 var fs = require('fs');
 
@@ -120,34 +119,32 @@ function putConfig(workspaceDir, fileRoot, req, res, next, rest) {
 	var index = restOfTheUrl.indexOf("/")
 	var key = restOfTheUrl.substring(0, index)
 	var repoPath = restOfTheUrl.substring(index+1).replace("clone/file/", "")
+	var oldPath = repoPath
 	var location = api.join(fileRoot, repoPath);
 	repoPath = api.join(workspaceDir, repoPath);
-	console.log(req.body);
 	git.Repository.open(repoPath)
 	.then(function(repo) {
 		if (repo) {
-			fs.readFile(api.join(repoPath, ".git/config"), {encoding:'utf-8'}, function(err, config){
-				var config = ini.parse(config)
-				config[key] = req.body.Value;
-				fs.writeFile(api.join(repoPath, ".git/config"),
-					ini.stringify(config, {section: key.substring(0, key.indexOf("."))}),
-					function(err){
-					if (err) throw err;
+			repo.config().then(function(config) {
+				var resp = config.setString(key, req.body.Value);
+				if (resp === 0) {
 					var resp = JSON.stringify({
 						"Key": key,
-						"Location": "/gitapi/config/"+key+"/clone/file/",
+						"Location": "/gitapi/config/"+key+"/clone/file/"+oldPath,
 						"Value": req.body.Value
 					});
 					res.statusCode = 200;
 					res.setHeader('Content-Type', 'application/json');
 					res.setHeader('Content-Length', resp.length);
 					res.end(resp);
-				});
+				}
+				else {
+					writeError(403, res);
+				}
 			})
 		}
 	});
 }
-
 
 
 module.exports = {
