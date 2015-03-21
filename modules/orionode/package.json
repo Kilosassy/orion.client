@@ -13,7 +13,7 @@
     "socket.io-client": "~0.9.11",
     "term.js": "0.0.3",
     "pty.js": "0.2.3",
-    "nodegit": "https://github.com/nodegit/nodegit.git",
+    "nodegit": "git+https://github.com/nodegit/nodegit.git",
     "findit": "~2.0.0",
     "connect-redirection": "0.0.1",
     "mkdirp": "*",
