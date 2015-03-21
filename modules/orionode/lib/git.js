@@ -88,7 +88,7 @@ module.exports = function(options) {
 			}
 		},
 		DELETE: function(req, res, next, rest) {
-			if(rest.indexOf("clone/file/") === 0){
+			if(rest.indexOf("clone/file/") === 0) {
 				var configPath = rest.replace("clone/file", "");
 				console.log("Removing git repository " + workspaceDir + configPath);
 				var rmdir = require('rimraf');
@@ -96,7 +96,12 @@ module.exports = function(options) {
 					res.statusCode = 200;
 					res.end();
 				});
-			} 
+			}
+			else if (rest.indexOf("tag/") === 0) {
+				tags.deleteTags(workspaceDir, fileRoot, req, res, next, rest);
+			} else {	
+				writeError(403, res);
+			}
 		}
 	}));
 };

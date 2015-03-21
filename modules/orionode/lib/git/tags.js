@@ -53,6 +53,29 @@ function getTags(workspaceDir, fileRoot, req, res, next, rest) {
   })
 }
 
+function deleteTags(workspaceDir, fileRoot, req, res, next, rest) {
+  var restOfTheUrl = rest.replace("tag/", "");
+  var index = restOfTheUrl.indexOf("/")
+  var tag = restOfTheUrl.substring(0, index);
+  var repoPath = restOfTheUrl.substring(index+1).replace("file/", "");
+  
+  repoPath = api.join(workspaceDir, repoPath);
+
+  git.Repository.open(repoPath)
+  .then(function(repo) {
+    if (repo) {
+      var resp = git.Tag.delete(repo, tag);
+      if (resp === 0) {
+        res.statusCode = 200;
+        res.end();
+      } else {
+        writeError(403, res);
+      } 
+    }
+  })
+}
+
 module.exports = {
-	getTags: getTags
+	getTags: getTags,
+  deleteTags: deleteTags
 }
