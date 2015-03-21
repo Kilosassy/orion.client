@@ -12,7 +12,6 @@
 /*globals configs:true val:true*/
 var api = require('../api'), writeError = api.writeError;
 var git = require('nodegit');
-var finder = require('findit');
 var path = require("path");
 var ini = require('ini');
 var fs = require('fs');

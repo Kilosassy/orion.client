@@ -11,7 +11,6 @@
 /*eslint-env node */
 var api = require('../api'), writeError = api.writeError;
 var git = require('nodegit');
-var finder = require('findit');
 var path = require("path");
 
 

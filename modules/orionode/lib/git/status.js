@@ -12,7 +12,6 @@
 var api = require('../api'),
     writeError = api.writeError;
 var git = require('nodegit');
-var finder = require('findit');
 var path = require("path");
 
 function getStatus(workspaceDir, fileRoot, req, res, next, rest) {

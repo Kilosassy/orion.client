@@ -25,8 +25,6 @@ var config = require('./git/config');
 var tags = require('./git/tags');
 var stash = require('./git/stash');
 var rmdir = require('rimraf');
-var git = require('nodegit');
-var finder = require('findit');
 var path = require("path");
 var redirect = require('connect-redirection');
 
