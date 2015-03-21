@@ -14,7 +14,6 @@ var git = require('nodegit');
 var finder = require('findit');
 var path = require("path");
 var Clone = git.Clone;
-var mkdirp = require("mkdirp");
 var exec = require('child_process').exec;
 var fs = require('fs');
 
