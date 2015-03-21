@@ -114,6 +114,35 @@ function getConfig(workspaceDir, fileRoot, req, res, next, rest) {
 	});
 }
 
+function postConfig(workspaceDir, fileRoot, req, res, next, rest) {
+	var repoPath = rest.replace("config/clone/file/", "");
+	var oldPath = repoPath;
+	var location = api.join(fileRoot, repoPath);
+	repoPath = api.join(workspaceDir, repoPath);
+	git.Repository.open(repoPath)
+	.then(function(repo) {
+		if (repo) {
+			repo.config().then(function(config) {
+				var resp = config.setString(req.body.Key, req.body.Value);
+				if (resp === 0) {
+					var resp = JSON.stringify({
+						"Key": req.body.Key,
+						"Location": "/gitapi/config/"+req.body.Key+"/clone/file/"+oldPath,
+						"Value": req.body.Value
+					});
+					res.statusCode = 201;
+					res.setHeader('Content-Type', 'application/json');
+					res.setHeader('Content-Length', resp.length);
+					res.end(resp);
+				}
+				else {
+					writeError(403, res);
+				}
+			})
+		}
+	});
+}
+
 function putConfig(workspaceDir, fileRoot, req, res, next, rest) {
 	var restOfTheUrl = rest.replace("config/", "")
 	var index = restOfTheUrl.indexOf("/")
@@ -146,9 +175,9 @@ function putConfig(workspaceDir, fileRoot, req, res, next, rest) {
 	});
 }
 
-
 module.exports = {
 	getConfig: getConfig, 
 	getAConfig: getAConfig,
-	putConfig: putConfig
+	putConfig: putConfig,
+	postConfig: postConfig
 }

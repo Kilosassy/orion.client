@@ -71,6 +71,8 @@ module.exports = function(options) {
 				clone.postInit(workspaceDir, req, res);
 			} else if(rest.indexOf("index/file/E") === 0) {
 				add.postStage(workspaceDir, fileRoot, req, res, next, rest);
+			} else if (rest.indexOf("config/") === 0) {
+				config.postConfig(workspaceDir, fileRoot, req, res, next, rest);
 			} else {	
 				writeError(403, res);
 			}
