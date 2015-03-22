@@ -24,6 +24,7 @@ var status = require('./git/status');
 var config = require('./git/config');
 var tags = require('./git/tags');
 var stash = require('./git/stash');
+var blame = require('./git/blame');
 var rmdir = require('rimraf');
 var path = require("path");
 var redirect = require('connect-redirection');
@@ -53,12 +54,15 @@ module.exports = function(options) {
 			} else if (rest.indexOf("config/") === 0) {
 				config.getAConfig(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("index/file/") === 0) {
+				// I think this is working, but I'm not 100%, leave it out for now.
 				//add.getFileIndex(workspaceDir, fileRoot, req, res, next, rest);
 				res.redirect(rest.replace("index", ""));
 			} else if (rest.indexOf("tag/file/") === 0) {
 				tags.getTags(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("stash/file") === 0) {
 				stash.getStash(workspaceDir, fileRoot, req, res, next, rest);
+			} else if (rest.indexOf("blame/") === 0) {
+				blame.getBlame(workspaceDir, fileRoot, req, res, next, rest);
 			}
 			else {
 				writeError(403, res);
