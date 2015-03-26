@@ -18,7 +18,25 @@ var exec = require('child_process').exec;
 var fs = require('fs');
 
 function getBlame(workspaceDir, fileRoot, req, res, next, rest) {
-    
+
+    finder(workspaceDir).on('directory', function (dir, stat, stop) {
+        git.Repository.open(dir)
+        .then(function(repo) {
+            var file = req.substring(req.indexOf("/file/") + 6);
+            var pos = req.substring(req.indexOf("/blame/") + 7, req.indexOf("/file/") + 6);
+
+            git.Blame.file(repo, dir).then(function(blame) {
+                var resp = JSON.stringify(blame);
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.setHeader('Content-Length', resp.length);
+                res.end(resp);
+
+                return blame;
+            });
+        });
+
+    });
 }
 
 module.exports = {
