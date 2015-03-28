@@ -22,6 +22,7 @@ var remotes = require('./git/remotes');
 var branches = require('./git/branches');
 var status = require('./git/status');
 var config = require('./git/config');
+var commit = require('./git/commit');
 var tags = require('./git/tags');
 var stash = require('./git/stash');
 var blame = require('./git/blame');
@@ -77,6 +78,8 @@ module.exports = function(options) {
 				add.postStage(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("config/") === 0) {
 				config.postConfig(workspaceDir, fileRoot, req, res, next, rest);
+			} else if (rest.indexOf("commit/") === 0) {
+				commit.postCommit(workspaceDir, fileRoot, req, res, next, rest);
 			} else {	
 				writeError(403, res);
 			}
