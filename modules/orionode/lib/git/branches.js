@@ -51,14 +51,11 @@ function getBranches(workspaceDir, fileRoot, req, res, next, rest) {
 		 			};
 	 			}
  			});
-			console.log("remotes is")
-			console.log(remotes)
 			//Check if there are remotes and branches of the same name
 			remotes.forEach(function(remote) {
 				var nameToMatch = remote.substring(remote.indexOf("/") + 1);
 				var remoteURL = remote.split("/").join("%252F");
 				var remoteName = remote.substring(0, remote.indexOf("/"));
-				console.log(remoteName);
 				if (branches[nameToMatch]) {
 					branches[nameToMatch]["RemoteLocation"].push({
 				        "Children": [{
@@ -84,13 +81,11 @@ function getBranches(workspaceDir, fileRoot, req, res, next, rest) {
 					})
 				}
 			});
-			console.log(branches)
 			var branchesArray = [];
 
 			for(var prop in branches) {
 				branchesArray.push(branches[prop]);
 			}
-			console.log(branchesArray);
 
 			var resp = JSON.stringify({
 				"Children": branchesArray,
