@@ -18,61 +18,92 @@ function getBranches(workspaceDir, fileRoot, req, res, next, rest) {
 	var fileDir = repoPath;
 	var gitPath;
     repoPath = api.join(workspaceDir, repoPath);
-		git.Repository.open(repoPath)
-		.then(function(repo) {
-			if (repo) {
-				gitPath = api.join(repoPath, ".git/refs/heads");
-				fs.readdir(gitPath, getRefs);
-			}
-			else {
-				writeError(403, res);
-			}
-	 	});
-	 	
-	 function getRefs(err, files) {
-	 	if (err) throw err;
-	 	var branches = [];
-	 	if (files.length !== 0) {
-	 		files.forEach(function(file) { //check .git/refs/heads firsts and push
-	 			var ID = fs.readFileSync(gitPath+'/'+file, {encoding:'utf-8'});
-	 			branches.push({
-	 				branchName:file.replace("\n", ""),
-	 				branchID:ID.replace("\n",""),
-	 				branchURL: api.join("refs/heads/", file)
-	 				
-	 			});
+	git.Repository.open(repoPath)
+	.then(function(repo) {
+		repo.getReferences(git.Reference.TYPE.OID)
+		.then(function(referenceList) {
+			var remotes = []
+			var branches = {}
+	 		referenceList.forEach(function(ref) {
+ 				if (ref.isRemote()) {
+					remoteName = ref.name().replace("refs/remotes/", "");
+					remotes.push(remoteName);
+				}
+
+	 			if (ref.isBranch()) {
+	 				var branchURL = ref.name().split("/").join("%252F");
+	 				var branchName = ref.name().replace("refs/heads/", "");
+	 				var isCurrent = ref.isHead() ? true : false;
+
+	 				branches[branchName] = {
+			 			"CloneLocation": "/gitapi/clone/file/"+ fileDir,
+			 			"CommitLocation": "/gitapi/commit/" + branchURL + "/file/" + fileDir,
+			 			"Current": isCurrent,
+			 			"DiffLocation": "/gitapi/diff/" + branchName + "/file/" + fileDir,
+			 			"FullName": "refs/heads/" + branchName,
+			 			"HeadLocation": "/gitapi/commit/HEAD/file/" + fileDir,
+			 			"LocalTimeStamp": 1424471958000, //hardcoded local timestamp
+			 			"Location": "/gitapi/branch/" + branchName + "/file/" + fileDir,
+			 			"Name": branchName,
+			 			"RemoteLocation": [],
+			 			"TreeLocation": "/gitapi/tree/file/" + fileDir + "/" + branchName,
+			 			"Type": "Branch"
+		 			};
+	 			}
  			});
-	 	}
- 		var packedRefs = api.join(repoPath, ".git/packed-refs"); //check .git/packed-refs and if not already in, add to array
- 		fs.readFile(packedRefs, {encoding:'utf-8'}, function (err, data) {
-		  if (err) throw err;
-		  var content = data.split("\n");
-		  content.forEach(function(string) {
-		  	string = string.split(" ");
-		  	if (string[1] && string[1].indexOf("refs/heads/") === 0) {
-		  		var originalBranch = string[1];
-		  		var branch = string[1].replace("refs/heads/","")
-		  		var seen = false;
-		  		for (var i=0; i<branches.length; i++) {
-		  			if (branches[i].branchName == branch) {
-		  				seen = true;
-		  				break;
-		  			}
-		  		}
-		  		
-		  		if(!seen) {
-		  			branches.push({
-			  			branchName: branch,
-			  			branchId: string[0],
-			  			branchURL: originalBranch
-		  			});
-		  		}
-		  	}
-		  });
-		  console.log(branches);
-		  sendResponse(branches);
-		 });
-	}
+			console.log("remotes is")
+			console.log(remotes)
+			//Check if there are remotes and branches of the same name
+			remotes.forEach(function(remote) {
+				var nameToMatch = remote.substring(remote.indexOf("/") + 1);
+				var remoteURL = remote.split("/").join("%252F");
+				var remoteName = remote.substring(0, remote.indexOf("/"));
+				console.log(remoteName);
+				if (branches[nameToMatch]) {
+					branches[nameToMatch]["RemoteLocation"].push({
+				        "Children": [{
+				          "CloneLocation": branches[nameToMatch]["CloneLocation"],
+				          "CommitLocation": "/gitapi/commit/" + remoteURL + "/file/" + fileDir,
+				          "DiffLocation": "/gitapi/diff/" + remoteURL + "/file/" + fileDir,
+				          "FullName": "refs/remotes/" + remote,
+				          "GitUrl": "git@github.com:albertcui/orion.client.git", //hardcoded
+				          "HeadLocation": "/gitapi/commit/HEAD/" + fileDir,
+				          "Id": "08c41c776f2e9e5dca7fbbbcfe2c8c9c06300998", //hardcoded
+				          "IndexLocation": "/gitapi/index/" + fileDir,
+				          "Location": "/gitapi/remote/" + remote + "/file/" + fileDir,
+				          "Name": "origin/node_git_pages",
+				          "TreeLocation": "/gitapi/tree/file/" + fileDir + "/" + remoteURL,
+				          "Type": "RemoteTrackingBranch"
+				        }],
+				        "CloneLocation": "/gitapi/clone/file/" + fileDir,
+				        "GitUrl": "git@github.com:albertcui/orion.client.git",
+				        "IsGerrit": false, //hardcoded
+				        "Location": "/gitapi/remote/" + remoteName + "/" + fileDir,
+				        "Name": "origin",
+				        "Type": "Remote"
+					})
+				}
+			});
+			console.log(branches)
+			var branchesArray = [];
+
+			for(var prop in branches) {
+				branchesArray.push(branches[prop]);
+			}
+			console.log(branchesArray);
+
+			var resp = JSON.stringify({
+				"Children": branchesArray,
+				"Type": "Branch"
+			});
+		
+			res.statusCode = 200;
+			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Length', resp.length);
+			res.end(resp);
+ 		})
+ 	})
+}
 	 
 //	 function checkRemote(branches, sendResponse) {
 //	 	var remotes = [];
@@ -100,70 +131,36 @@ function getBranches(workspaceDir, fileRoot, req, res, next, rest) {
 //	 	
 //	 }
 	 
-	 function sendResponse(branches) {
-	 	var branchInfo = [];
-	 	var currentBranch;
-	 	var headPath = api.join(repoPath, ".git/HEAD");
-	 	fs.readFile(headPath, {encoding:'utf-8'}, function (err, data) {
-	 		if (err) throw err;
-	 		data = data.split("\n");
-			currentBranch = data[0].replace("ref: refs/heads/", "");
-	 		branches.forEach(function(branchObject) {
-	 			var isCurrent;
-		 		var branchID = branchObject.branchId;
-		 		var branchName = branchObject.branchName;
-		 		var branchURL = branchObject.branchURL;
-		 		var branchURLRemotes = branchURL.replace("heads", "remotes/origin");
-		 		branchURL = encodeURI(branchURL);
-		 		branchURLRemotes = encodeURI(branchURLRemotes);
-		 		if (branchName === currentBranch){isCurrent = true;} else {isCurrent = false;}
-		 		branchInfo.push({
-		 			"CloneLocation": "/gitapi/clone/file/"+ fileDir,
-		 			"CommitLocation": "/gitapi/commit/" + branchURL + "/file/" + fileDir,
-		 			"Current": isCurrent,
-		 			"DiffLocation": "/gitapi/diff/" + branchName + "/file/" + fileDir,
-		 			"FullName": "refs/heads/" + branchName,
-		 			"HeadLocation": "/gitapi/commit/HEAD/file/" + fileDir,
-		 			"LocalTimeStamp": 1424471958000, //hardcoded local timestamp
-		 			"Location": "/gitapi/branch/" + branchName + "/file/" + fileDir,
-		 			"Name": branchName,
-		 			"RemoteLocation": [{
-		 				"Children": [{
-					          "CloneLocation": "/gitapi/clone/file/"+ fileDir,
-					          "CommitLocation": "/gitapi/commit/" + branchURLRemotes + "/file/" + fileDir,
-					          "DiffLocation": "/gitapi/diff" + branchURLRemotes.replace("remotes", "") + "/file/" + fileDir,
-					          "FullName": "refs/remotes/origin/" + branchName,
-					          "GitUrl": "https://github.com/albertcui/orion.client.git", // hardcoded git URL
-					          "HeadLocation": "/gitapi/commit/HEAD/file/" + fileDir,
-					          "Id": branchID,
-					          "IndexLocation": "/gitapi/index/file/" + fileDir,
-					          "Location": "/gitapi/remote/origin/node_git_pages/file/mvthen-OrionContent/Orion%20Client/orion.client/",
-					          "Name": "origin/master",
-					          "TreeLocation": "/gitapi/tree/file/mvthen-OrionContent/Orion%20Client/orion.client/origin%252Fmaster",
-					          "Type": "RemoteTrackingBranch"
-					        }],
-					        "CloneLocation": "/gitapi/clone/file/" + fileDir,
-					        "GitUrl": "https://github.com/albertcui/orion.client.git", // hardcoded git URL
-					        "IsGerrit": false,
-					        "Location": "/gitapi/remote/origin/file/" + fileDir,
-					        "Name": "origin",
-					        "Type": "Remote"
-		 			}],
-		 			"TreeLocation": "/gitapi/tree/file/" + fileDir + "/" + branchName,
-		 			"Type": "Branch"
-		 		});
-	 		});
-	 		var resp = JSON.stringify({
-						"Children": branchInfo,
-						"Type": "Branch"
-			});
-			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
-			res.setHeader('Content-Length', resp.length);
-			res.end(resp);
-			});
-	 	}
-}
+	 // function sendResponse(branches) {
+	 // 	var branchInfo = [];
+	 // 	var currentBranch;
+	 // 	var headPath = api.join(repoPath, ".git/HEAD");
+	 // 	fs.readFile(headPath, {encoding:'utf-8'}, function (err, data) {
+	 // 		if (err) throw err;
+	 // 		data = data.split("\n");
+		// 	currentBranch = data[0].replace("ref: refs/heads/", "");
+	 // 		branches.forEach(function(branchObject) {
+	 // 			var isCurrent;
+		//  		var branchID = branchObject.branchId;
+		//  		var branchName = branchObject.branchName;
+		//  		var branchURL = branchObject.branchURL;
+		//  		var branchURLRemotes = branchURL.replace("heads", "remotes/origin");
+		//  		branchURL = encodeURI(branchURL);
+		//  		branchURLRemotes = encodeURI(branchURLRemotes);
+		//  		if (branchName === currentBranch){isCurrent = true;} else {isCurrent = false;}
+		 		
+	 // 		});
+	 // 		var resp = JSON.stringify({
+		// 				"Children": branchInfo,
+		// 				"Type": "Branch"
+		// 	});
+		// 	res.statusCode = 200;
+		// 	res.setHeader('Content-Type', 'application/json');
+		// 	res.setHeader('Content-Length', resp.length);
+		// 	res.end(resp);
+		// 	});
+	 	// }
+// }
 
 module.exports = {
 	getBranches: getBranches
