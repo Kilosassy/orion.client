@@ -27,7 +27,8 @@ var tags = require('./git/tags');
 var stash = require('./git/stash');
 var blame = require('./git/blame');
 var rmdir = require('rimraf');
-var path = require("path");
+var path = require('path');
+var url = require('url');
 var redirect = require('connect-redirection');
 
 module.exports = function(options) {
@@ -66,8 +67,11 @@ module.exports = function(options) {
 				stash.getStash(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("blame/") === 0) {
 				blame.getBlame(workspaceDir, fileRoot, req, res, next, rest);
-			}
-			else {
+			} else if (rest.indexOf("commit/HEAD/file/") === 0) {
+				if (url.parse(req.url, true).query.page) {
+					commit.getCommitLog(workspaceDir, fileRoot, req, res, next, rest);
+				}
+			} else {
 				writeError(403, res);
 			}
 		},

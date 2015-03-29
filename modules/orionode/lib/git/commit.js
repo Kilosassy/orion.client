@@ -16,11 +16,78 @@ var path = require("path");
 var Clone = git.Clone;
 var exec = require('child_process').exec;
 var fs = require('fs');
+var url = require('url');
+
+function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
+	var repoPath = rest.replace("commit/HEAD/file/", "");
+	var fileDir = repoPath;
+	var gitPath;
+	var query = url.parse(req.url, true).query;
+	var pageSize = query.pageSize;
+	var page = query.page;
+    repoPath = api.join(workspaceDir, repoPath);
+	git.Repository.open(repoPath)
+	.then(function(repo) {
+		repo.getCurrentBranch()
+		.then(function(reference) {
+			repo.getBranchCommit(reference)
+			.then(function(commit) {
+				var commits = [];
+				var history = commit.history();
+				var count = 0;
+				history.on("commit", function(commit) {
+					if (++count >= pageSize*page) {
+						return commits;
+
+					} else if (count >= (page-1)*pageSize) {
+						commits.push({
+							"AuthorEmail": commit.author().name, 
+							"AuthorName": commit.author().email,
+							"Children":[],
+							"CommitterEmail": commit.committer().email,
+							"CommitterName": commit.committer.name,
+							"ContentLocation": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir + "?parts=body",
+							"DiffLocation": "/gitapi/diff/" + commit.sha() + "/file/" + fileDir,
+							"Diffs":[],
+							"Location": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir,
+							"Message": commit.message(),
+							"Name": commit.sha(),
+							"Time": commit.timeMs(),
+							"Type": "Commit"
+						});
+					}
+				});
+				history.start();
+			})
+			.then(function(commits) {
+				var referenceName = reference.name();
+				var resp = JSON.stringify({
+					"Children": commits,
+					"RepositoryPath": "",
+					"toRef": {
+						"CloneLocation": "/gitapi/clone/file/" + fileDir,
+						"CommitLocation": "/gitapi/commit/" + referenceName + "/file/" + fileDir,
+						"Current": true,
+						"HeadLocation": "/gitapi/commit/HEAD/file/" + fileDir,
+						"Location": "/gitapi/branch/" + referenceName + "/file/" + fileDir,
+						"Name": referenceName,
+						"Type": "Branch"
+					}
+				});
+				res.statusCode = 200;
+				res.setHeader('Content-Type', 'application/json');
+				res.setHeader('Content-Length', resp.length);
+				res.end(resp);
+			})
+		});
+	});
+}
 
 function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 
 }
 
 module.exports = {
+	getCommitLog: getCommitLog,
     postCommit: postCommit
 };
