@@ -48,6 +48,8 @@ module.exports = function(options) {
 				remotes.getRemotes(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("branch/file/")===0) {
 				branches.getBranches(workspaceDir, fileRoot, req, res, next, rest);
+			} else if (rest.indexOf("branch/")===0) {
+				branches.getBranchMetadata(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("status/file/") === 0) {
 				status.getStatus(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("config/clone/file/") === 0) {
@@ -80,6 +82,8 @@ module.exports = function(options) {
 				config.postConfig(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("commit/") === 0) {
 				commit.postCommit(workspaceDir, fileRoot, req, res, next, rest);
+			} else if (rest.indexOf("branch/") === 0) {
+				branches.createBranch(workspaceDir, fileRoot, req, res, next, rest);
 			} else {	
 				writeError(403, res);
 			}
@@ -103,9 +107,10 @@ module.exports = function(options) {
 					res.statusCode = 200;
 					res.end();
 				});
-			}
-			else if (rest.indexOf("tag/") === 0) {
+			} else if (rest.indexOf("tag/") === 0) {
 				tags.deleteTags(workspaceDir, fileRoot, req, res, next, rest);
+			} else if (rest.indexOf("branch/") === 0) {
+				branches.deleteBranch(workspaceDir, fileRoot, req, res, next, rest);
 			} else {	
 				writeError(403, res);
 			}
