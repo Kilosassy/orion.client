@@ -21,7 +21,6 @@ var url = require('url');
 function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
 	var repoPath = rest.replace("commit/HEAD/file/", "");
 	var fileDir = repoPath;
-	var gitPath;
 	var query = url.parse(req.url, true).query;
 	var pageSize = query.pageSize;
 	var page = query.page;
@@ -83,11 +82,49 @@ function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
 	});
 }
 
+function getCommitMetadata(workspaceDir, fileRoot, req, res, next, rest) {
+	var repoPath = rest.replace("commit/", "");
+	var commitID = repoPath.substring(0, repoPath.indexOf("/"));
+	repoPath = repoPath.substring(repoPath.indexOf("/")+1).replace("file/", "");
+	var fileDir = repoPath;
+	repoPath = api.join(workspaceDir, repoPath);
+	git.Repository.open(repoPath)
+	.then(function(repo) {
+		git.Commit.lookup(repo, commitID)
+		.then(function(commit) {
+			var commitResp = {
+				"Children": [{
+					"AuthorEmail": commit.author().name, 
+					"AuthorName": commit.author().email,
+					"Children":[],
+					"CommitterEmail": commit.committer().email,
+					"CommitterName": commit.committer.name,
+					"ContentLocation": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir + "?parts=body",
+					"DiffLocation": "/gitapi/diff/" + commit.sha() + "/file/" + fileDir,
+					"Location": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir,
+					"Message": commit.message(),
+					"Name": commit.sha(),
+					"Time": commit.timeMs(),
+					"Type": "Commit"	
+				}],
+				"RepositoryPath": ""
+			}
+			var resp = JSON.stringify(commitResp);
+
+			res.statusCode = 200;
+			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Length', resp.length);
+			res.end(resp);
+		});
+	});
+}
+
 function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 
 }
 
 module.exports = {
 	getCommitLog: getCommitLog,
+	getCommitMetadata: getCommitMetadata,
     postCommit: postCommit
 };

@@ -18,69 +18,84 @@ function getStatus(workspaceDir, fileRoot, req, res, next, rest) {
     var status = [];
     var repoPath = rest.replace("status/file/", "");
     repoPath = api.join(workspaceDir, repoPath);
-    git.Repository.open(repoPath)
+    git.Repository.opens(repoPath)
         .then(function(repo) {
-            if (repo) {
-                repo.getStatus().then(function(statuses) {
-                    var added = [],
-                        changed = [], // no idea
-                        conflicting = [], // merge conflict??
-                        missing = [], // no idea
-                        modified = [],
-                        removed = [], // no idea
-                        untracked = [];
+            repo.getStatus().then(function(statuses) {
+              function statusToText(status) {
+                var words = [];
+                if (status.isNew()) { words.push("NEW"); }
+                if (status.isModified()) { words.push("MODIFIED"); }
+                if (status.isTypechange()) { words.push("TYPECHANGE"); }
+                if (status.isRenamed()) { words.push("RENAMED"); }
+                if (status.isIgnored()) { words.push("IGNORED"); }
 
-                    function returnContent(file) {
-                    	var orionFilePath = api.join(rest.replace("status/file/", ""), file.path().replace(workspaceDir,""));
-                        return {
-                            "Git": {
-                                "CommitLocation": "/gitapi/commit/HEAD/file/" + orionFilePath,
-                                "DiffLocation": "/gitapi/diff/Default/file/"+ orionFilePath,
-                                "IndexLocation": "/gitapi/index/file/" + orionFilePath
-                            },
-                            "Location": "/file/" + orionFilePath,
-                            "Name": file.path(),
-                            "Path": file.path()
-                        }
-                    }
-                    statuses.forEach(function(file) {
-                        if (file.isNew()) {
-                            untracked.push(returnContent(file));
-                        }
-                        if (file.isModified()) {
-                            modified.push(returnContent(file));
-                        }
+                return words.join(" ");
+              }
 
-                        //		        if (status.isTypechange()) { words.push("TYPECHANGE"); }
-                        //		        if (status.isRenamed()) { words.push("RENAMED"); }
-                        //		        if (status.isIgnored()) { words.push("IGNORED"); }
-                        //		        console.log(file.path() + " " + statusToText(file));
-                    });
-                    var resp = JSON.stringify({
-                        "Added": added,
-                        "Changed": changed,
-                        "CloneLocation": "/gitapi/clone/file/" + rest.replace("status/file/", ""),
-                        "CommitLocation": "/gitapi/commit/HEAD/file/" + rest.replace("status/file/", ""),
-                        "Conflicting": conflicting,
-                        "IndexLocation": "/gitapi/index/file/" + rest.replace("status/file/", ""),
-                        "Location": "/gitapi/status/file/" + rest.replace("status/file/", ""),
-                        "Missing": missing,
-                        "Modified": modified,
-                        "Removed": removed,
-                        "RepositoryState": "SAFE",
-                        "Type": "Status",
-                        "Untracked": untracked
-                        
-                    });
-                    res.statusCode = 200;
-                    res.setHeader('Content-Type', 'application/json');
-                    res.setHeader('Content-Length', resp.length);
-                    res.end(resp);
+              statuses.forEach(function(file) {
+                console.log(file.path() + " " + statusToText(file));
+              });
+            });
 
-                });
-            } else {
-                writeError(403, res);
-            }
+            // repo.getStatus().then(function(statuses) {
+            //     var added = [],
+            //         changed = [], // no idea
+            //         conflicting = [], // merge conflict??
+            //         missing = [], // no idea
+            //         modified = [],
+            //         removed = [], // no idea
+            //         untracked = [];
+
+            //     function returnContent(file) {
+            //         console.log("returned content")
+            //     	var orionFilePath = api.join(rest.replace("status/file/", ""), file.path().replace(workspaceDir,""));
+            //         return {
+            //             "Git": {
+            //                 "CommitLocation": "/gitapi/commit/HEAD/file/" + orionFilePath,
+            //                 "DiffLocation": "/gitapi/diff/Default/file/"+ orionFilePath,
+            //                 "IndexLocation": "/gitapi/index/file/" + orionFilePath
+            //             },
+            //             "Location": "/file/" + orionFilePath,
+            //             "Name": file.path(),
+            //             "Path": file.path()
+            //         }
+            //     }
+            //     statuses.forEach(function(file) {
+            //         if (file.isNew()) {
+            //             untracked.push(returnContent(file));
+            //         }
+            //         if (file.isModified()) {
+            //             modified.push(returnContent(file));
+            //         }
+
+            //         //		        if (status.isTypechange()) { words.push("TYPECHANGE"); }
+            //         //		        if (status.isRenamed()) { words.push("RENAMED"); }
+            //         //		        if (status.isIgnored()) { words.push("IGNORED"); }
+            //         //		        console.log(file.path() + " " + statusToText(file));
+            //     });
+            //     console.log("sending resp");
+            //     var resp = JSON.stringify({
+            //         "Added": added,
+            //         "Changed": changed,
+            //         "CloneLocation": "/gitapi/clone/file/" + rest.replace("status/file/", ""),
+            //         "CommitLocation": "/gitapi/commit/HEAD/file/" + rest.replace("status/file/", ""),
+            //         "Conflicting": conflicting,
+            //         "IndexLocation": "/gitapi/index/file/" + rest.replace("status/file/", ""),
+            //         "Location": "/gitapi/status/file/" + rest.replace("status/file/", ""),
+            //         "Missing": missing,
+            //         "Modified": modified,
+            //         "Removed": removed,
+            //         "RepositoryState": "SAFE",
+            //         "Type": "Status",
+            //         "Untracked": untracked
+                    
+            //     });
+            //     res.statusCode = 200;
+            //     res.setHeader('Content-Type', 'application/json');
+            //     res.setHeader('Content-Length', resp.length);
+            //     res.end(resp);
+
+            // });
         });
 
 }

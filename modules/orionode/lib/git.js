@@ -41,6 +41,7 @@ module.exports = function(options) {
 	.use(redirect())
 	.use(resource(workspaceRoot, {
 		GET: function(req, res, next, rest) {
+			var query = url.parse(req.url, true).query;
 			if (rest === '') {
 				console.log("nope");
 			} else if (rest.indexOf("clone/workspace/") === 0) {
@@ -68,8 +69,13 @@ module.exports = function(options) {
 			} else if (rest.indexOf("blame/") === 0) {
 				blame.getBlame(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("commit/HEAD/file/") === 0) {
-				if (url.parse(req.url, true).query.page) {
+				if (query.page) {
 					commit.getCommitLog(workspaceDir, fileRoot, req, res, next, rest);
+				}
+			} else if (rest.indexOf("commit/") === 0) {
+				if (query.parts) {
+				} else {
+					commit.getCommitMetadata(workspaceDir, fileRoot, req, res, next, rest);
 				}
 			} else {
 				writeError(403, res);
