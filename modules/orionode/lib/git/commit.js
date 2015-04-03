@@ -120,7 +120,39 @@ function getCommitMetadata(workspaceDir, fileRoot, req, res, next, rest) {
 }
 
 function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
+	var repoPath = rest.replace("commit/HEAD/file/", "");
+	var fileDir = repoPath;
+	var query = url.parse(req.url, true).query;
+	var pageSize = query.pageSize;
+	var page = query.page;
+	var theRepo;
+    repoPath = api.join(workspaceDir, repoPath);
+	git.Repository.open(repoPath)
+	.then(function(repo) {
+		theRepo = repo;
+	})
+	.then(function() {
+	  return index.writeTree();
+	})
+	.then(function(oidResult) {
+	  oid = oidResult;
+	  return nodegit.Reference.nameToId(theRepo, "HEAD");
+	})
+	.then(function(head) {
+	  return theRepo.getCommit(head);
+	})
+	.then(function(parent) {
+	  var author = nodegit.Signature.create("John Doe", "johndoe@gmail.com", 123456789, 60);
+	  var committer = nodegit.Signature.create("johndoe", "johndoe@github.com", 987654321, 90);
 
+	  return theRepo.createCommit("HEAD", author, committer, "message", oid, [parent]);
+	})
+	.done(function(id) {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Length', resp.length);
+        res.end();
+	});
 }
 
 module.exports = {
