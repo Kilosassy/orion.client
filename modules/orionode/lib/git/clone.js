@@ -11,98 +11,94 @@
 /*eslint-env node */
 var api = require('../api'), writeError = api.writeError;
 var git = require('nodegit');
-var finder = require('findit');
 var path = require("path");
 var Clone = git.Clone;
-var exec = require('child_process').exec;
 var fs = require('fs');
+var async = require('async');
 
 function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 	var repos = [];
-	finder(workspaceDir).on('directory', function (dir, stat, stop) {
-	    var base = path.basename(dir);
-	    if (base !== '.git') {
+
+	fs.readdir(workspaceDir, function(err, files) {
+		if (err) return cb(err);
+		
+		files = files.map(function(file) {
+			return path.join(workspaceDir, file);
+		})
+
+		async.each(files, checkDirectory, function(err) {
+			if (err) return writeError(403);
+			var resp = JSON.stringify({
+				"Children": repos,
+				"Type": "Clone"
+			});
+
+			res.statusCode = 200;
+			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Length', resp.length);
+			res.end(resp);	
+		});
+	})
+
+	function checkDirectory(dir, cb) {
+		//Check if the dir is a directory
+		// Might want to use async version
+		console.log(dir)
+		fs.lstat(dir, function(err, stat) {
+			if (err || !stat.isDirectory()) return cb();
+			var base = path.basename(dir);
+			console.log("base is "+ base)
 			git.Repository.open(dir)
 			.then(function(repo) {
-				if (repo) {
-					var location = api.join(fileRoot, dir.replace(workspaceDir + "/", ""));
-					var repoInfo = {
-						"BranchLocation": "/gitapi/branch" + location,
-						"CommitLocation": "/gitapi/commit" + location,
-						"ConfigLocation": "/gitapi/config/clone" + location,
-						"ContentLocation": location,
-						"DiffLocation": "/gitapi/diff/Default" + location,
-						"HeadLocation": "/gitapi/commit/HEAD" + location,
-						"IndexLocation": "/gitapi/index" + location,
-						"Location": "/gitapi/clone" + location,
-						"Name": base,
-						"RemoteLocation": "/gitapi/remote" + location,
-						"StashLocation": "/gitapi/stash" + location,
-						"StatusLocation": "/gitapi/status" + location,
-						"TagLocation": "/gitapi/tag" + location,
-						"Type": "Clone"
-					};
-					repo.getRemotes()
-					.then(function(remotes){
-						remotes.forEach(function(remote) {
-							if (remote === "origin") {
-								repo.getRemote(remote)
-								.then(function(remote){
-									repoInfo.GitUrl = remote.url();
-									return;
-								});
-							} 
-							
-						});
-					})
-					.then(function() {
-						repos.push(repoInfo);
+				console.log("repo opened")
+				var location = api.join(fileRoot, dir.replace(workspaceDir + "/", ""));
+				var repoInfo = {
+					"BranchLocation": "/gitapi/branch" + location,
+					"CommitLocation": "/gitapi/commit" + location,
+					"ConfigLocation": "/gitapi/config/clone" + location,
+					"ContentLocation": location,
+					"DiffLocation": "/gitapi/diff/Default" + location,
+					"HeadLocation": "/gitapi/commit/HEAD" + location,
+					"IndexLocation": "/gitapi/index" + location,
+					"Location": "/gitapi/clone" + location,
+					"Name": base,
+					"RemoteLocation": "/gitapi/remote" + location,
+					"StashLocation": "/gitapi/stash" + location,
+					"StatusLocation": "/gitapi/status" + location,
+					"TagLocation": "/gitapi/tag" + location,
+					"Type": "Clone"
+				};
+
+				repo.getRemotes()
+				.then(function(remotes){
+					remotes.forEach(function(remote) {
+						if (remote === "origin") {
+							repo.getRemote(remote)
+							.then(function(remote){
+								repoInfo.GitUrl = remote.url();
+								return cb();
+							});
+						} 
+						
 					});
-					return repo.getMasterCommit();
-				}
-			 });
-//			 .then(function(firstCommitOnMaster) {
-//			      // Create a new history event emitter.
-//			      var history = firstCommitOnMaster.history();
-//			      var count = 0;
-//			      history.on("commit", function(commit) {
-//  					  if (++count >= 2) {
-//				          return;
-//				      }
-//				      // Show the commit sha.
-//				      console.log("commit " + commit.sha());
-//				      // Store the author object.
-//				      var author = commit.author();
-//				
-//				      // Display author information.
-//				      console.log("Author:\t" + author.name() + " <", author.email() + ">");
-//				
-//				      // Show the commit date.
-//				      console.log("Date:\t" + commit.date());
-//				
-//				      // Give some space and show the message.
-//				      console.log("\n    " + commit.message());
-//				      
-//				      return;
-//				  });
-//				  
-//				  history.start();
-//			  })
-		}
-	})
-	.on('end', function() {
-		var resp = JSON.stringify({
-			"Children": repos,
-			"Type": "Clone"
-		});
-		res.statusCode = 200;
-		res.setHeader('Content-Type', 'application/json');
-		res.setHeader('Content-Length', resp.length);
-		res.end(resp);
-	})
-	.on('error', function() {
-		writeError(403, res);
-	});
+				})
+				.then(function() {
+					repos.push(repoInfo);
+				});
+	 		})
+			.catch(function(err) {
+				fs.readdir(dir, function(err, files) {
+					if (err) return cb();
+
+					files = files.map(function(file) {
+						return path.join(dir, file);
+					})
+
+					async.each(files, checkDirectory, cb);
+				})	
+			})
+		})
+	}
 }
 
 function postInit(workspaceDir, req, res) {

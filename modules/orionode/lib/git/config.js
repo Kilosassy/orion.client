@@ -67,6 +67,7 @@ function getConfig(workspaceDir, fileRoot, req, res, next, rest) {
 	var repoPath = rest.replace("config/clone/file/", "");
 	var location = api.join(fileRoot, repoPath);
 	repoPath = api.join(workspaceDir, repoPath);
+	console.log(repoPath)
 	git.Repository.open(repoPath)
 	.then(function(repo) {
 		if (repo) {
