@@ -11,10 +11,8 @@
 /*eslint-env node */
 var api = require('../api'), writeError = api.writeError;
 var git = require('nodegit');
-var finder = require('findit');
 var path = require("path");
 var Clone = git.Clone;
-var exec = require('child_process').exec;
 var fs = require('fs');
 var url = require('url');
 
