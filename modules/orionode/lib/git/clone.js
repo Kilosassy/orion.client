@@ -124,7 +124,7 @@ function postInit(workspaceDir, req, res) {
 function postClone(workspaceDir, fileRoot, req, res, next, rest) {
 	var req_data = req.body;
 	var url = req_data.GitUrl;
-	var the_dir = workspaceDir.substring(0, workspaceDir.lastIndexOf("/"));
+	var the_dir = workspaceDir.substring(0, wworkspaceDir.lastIndexOf("/"));
 	var cache = [];
 	/*console.log("POST clone with data: " + JSON.stringify(req, function(key, value) {
 	    if (typeof value === 'object' && value !== null) {

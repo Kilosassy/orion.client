@@ -71,13 +71,15 @@ module.exports = function(options) {
 			} else if (rest.indexOf("commit/HEAD/file/") === 0) {
 				if (query.page) {
 					commit.getCommitLog(workspaceDir, fileRoot, req, res, next, rest);
-				}
+				} 
 			} else if (rest.indexOf("commit/") === 0) {
 				if (query.parts) {
 					commit.getFileContent(workspaceDir, fileRoot, req, res, next, rest);
 				} else {
 					commit.getCommitMetadata(workspaceDir, fileRoot, req, res, next, rest);
 				}
+			} else if (rest.indexOf("diff/Default/file/") === 0) {
+				diff.getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next, rest);
 			} else {
 				writeError(403, res);
 			}

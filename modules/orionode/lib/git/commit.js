@@ -154,7 +154,7 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	var page = query.page;
 	var theRepo;
     repoPath = api.join(workspaceDir, repoPath);
-    // console.log(repoPath);
+
     return writeError(403, res);
 
 	git.Repository.open(repoPath)
