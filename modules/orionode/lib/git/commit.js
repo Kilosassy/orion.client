@@ -117,6 +117,35 @@ function getCommitMetadata(workspaceDir, fileRoot, req, res, next, rest) {
 	});
 }
 
+function getFileContent(workspaceDir, fileRoot, req, res, next, rest) {
+	var repoPath = rest.replace("commit/", "");
+	var commitID = repoPath.substring(0, repoPath.indexOf("/"));
+	repoPath = repoPath.substring(repoPath.indexOf("/")+1).replace("file/", "");
+	filePath = repoPath.substring(repoPath.indexOf("/")+1).replace("Folder/", "");
+	repoPath = repoPath.substring(0, repoPath.indexOf("/"));
+	var fileDir = repoPath;
+	repoPath = api.join(workspaceDir, repoPath);
+	filePath = filePath.replace(fileDir + "/", "");
+
+	git.Repository.open(repoPath)
+	.then(function(repo) {
+		git.Commit.lookup(repo, commitID)
+		.then(function(commit) {
+			commit.getEntry(filePath)
+			.then(function(treeEntry) {
+				treeEntry.getBlob()
+				.then(function(blob) {
+					var resp = JSON.stringify(blob.toString());
+					res.statusCode = 200;
+					res.setHeader('Content-Type', 'application/json');
+					res.setHeader('Content-Length', resp.length);
+					res.end(resp);
+				});
+			});
+		});
+	});
+}
+
 function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	var repoPath = rest.replace("commit/HEAD/file/", "");
 	var fileDir = repoPath;
@@ -125,6 +154,9 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	var page = query.page;
 	var theRepo;
     repoPath = api.join(workspaceDir, repoPath);
+    // console.log(repoPath);
+    return writeError(403, res);
+
 	git.Repository.open(repoPath)
 	.then(function(repo) {
 		theRepo = repo;
@@ -156,5 +188,6 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 module.exports = {
 	getCommitLog: getCommitLog,
 	getCommitMetadata: getCommitMetadata,
+	getFileContent: getFileContent,
     postCommit: postCommit
 };

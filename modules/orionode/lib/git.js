@@ -74,6 +74,7 @@ module.exports = function(options) {
 				}
 			} else if (rest.indexOf("commit/") === 0) {
 				if (query.parts) {
+					commit.getFileContent(workspaceDir, fileRoot, req, res, next, rest);
 				} else {
 					commit.getCommitMetadata(workspaceDir, fileRoot, req, res, next, rest);
 				}

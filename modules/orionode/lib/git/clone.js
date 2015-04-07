@@ -42,15 +42,12 @@ function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 
 	function checkDirectory(dir, cb) {
 		//Check if the dir is a directory
-		// Might want to use async version
-		console.log(dir)
+
 		fs.lstat(dir, function(err, stat) {
 			if (err || !stat.isDirectory()) return cb();
 			var base = path.basename(dir);
-			console.log("base is "+ base)
 			git.Repository.open(dir)
 			.then(function(repo) {
-				console.log("repo opened")
 				var location = api.join(fileRoot, dir.replace(workspaceDir + "/", ""));
 				var repoInfo = {
 					"BranchLocation": "/gitapi/branch" + location,
