@@ -48,7 +48,7 @@ function getStatus(workspaceDir, fileRoot, req, res, next, rest) {
                 if (file.isNew()) { untracked.push(returnContent(file)); }
                 if (file.isModified()) { modified.push(returnContent(file)); }
                 if (file.isDeleted()) { removed.push(returnContent(file)); }
-                if (status.isTypechange()) { changed.push(returnContent(file)); }
+                if (file.isTypechange()) { changed.push(returnContent(file)); }
                 //		        if (status.isRenamed()) { words.push("RENAMED"); }
                 //		        if (status.isIgnored()) { words.push("IGNORED"); }
             });
