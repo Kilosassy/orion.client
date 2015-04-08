@@ -165,7 +165,7 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	})
 	.then(function() {
 	  return index.writeTree();
-	})q
+	})
 	.then(function(oidResult) {
 	  oid = oidResult;
 	  return nodegit.Reference.nameToId(theRepo, "HEAD");
