@@ -16,6 +16,8 @@ var Clone = git.Clone;
 var fs = require('fs');
 var url = require('url');
 
+var val = undefined;
+
 function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
 	var repoPath = rest.replace("commit/HEAD/file/", "");
 	var fileDir = repoPath;
@@ -75,7 +77,7 @@ function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
 				res.setHeader('Content-Type', 'application/json');
 				res.setHeader('Content-Length', resp.length);
 				res.end(resp);
-			})
+			});
 		});
 	});
 }
@@ -163,7 +165,7 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	})
 	.then(function() {
 	  return index.writeTree();
-	})
+	})q
 	.then(function(oidResult) {
 	  oid = oidResult;
 	  return nodegit.Reference.nameToId(theRepo, "HEAD");
@@ -172,10 +174,18 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	  return theRepo.getCommit(head);
 	})
 	.then(function(parent) {
-	  var author = nodegit.Signature.create("John Doe", "johndoe@gmail.com", 123456789, 60);
-	  var committer = nodegit.Signature.create("johndoe", "johndoe@github.com", 987654321, 90);
+		fs.readFile(api.join(repoPath, ".git/config"), {encoding:'utf-8'}, function(err, config){
+			var config = ini.parse(config);
+			val = undefined;
+			findInPath(config, "", "user.name");
+			var user = val;
+			findInPath(config, "", "user.name");
+			var email = val;
+			var author = nodegit.Signature.create(user, email, 123456789, 60);
 
-	  return theRepo.createCommit("HEAD", author, committer, "message", oid, [parent]);
+	  		return theRepo.createCommit("HEAD", author, author, "message", oid, [parent]);
+		});
+	  
 	})
 	.done(function(id) {
         res.statusCode = 200;
@@ -183,6 +193,25 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
         res.setHeader('Content-Length', resp.length);
         res.end();
 	});
+}
+
+
+
+function findInPath(config, prefix, key) {
+	if (typeof config !== "object") {
+		if (prefix === key) {
+			console.log(config);
+			val = config;
+		}
+	} else {
+		for (var property in config) {
+		    if (config.hasOwnProperty(property)) {
+		    	// ini gives reply as 'branch "origin"', remove the ", add period
+		    	var path = property.split('"').join("").replace(" ", ".");
+		        findInPath(config[property], prefix === "" ? path : prefix + "." + path, key);
+		    }
+		}
+	}
 }
 
 module.exports = {
