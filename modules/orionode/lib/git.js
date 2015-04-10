@@ -26,6 +26,7 @@ var commit = require('./git/commit');
 var tags = require('./git/tags');
 var stash = require('./git/stash');
 var blame = require('./git/blame');
+var diff = require('./git/diff');
 var rmdir = require('rimraf');
 var path = require('path');
 var url = require('url');
