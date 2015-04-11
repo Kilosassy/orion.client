@@ -16,11 +16,14 @@ var Clone = git.Clone;
 var fs = require('fs');
 var url = require('url');
 
-function getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next, rest) {
+function getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next, rest, diffOnly, uriOnly) {
 	var repoPath = rest.replace("diff/Default/file/", "");
-    var fileDir = repoPath;
+	var filePath = repoPath.substring(repoPath.indexOf("/")+1);
+    repoPath = repoPath.substring(0, repoPath.indexOf("/"));
+	var fileDir = repoPath;
     repoPath = api.join(workspaceDir, repoPath);
     var body = "";
+
     git.Repository.open(repoPath)
     .then(function(repo) {
         return git.Diff.indexToWorkdir(repo, null, null);
@@ -33,57 +36,78 @@ function getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next
             var oldFile = patch.oldFile();
             var newFile = patch.newFile();
             var newFilePath = newFile.path();
-            
-            body += "--BOUNDARY\n"
-            body += "Content-Type: application/json\n\n"
-            body += JSON.stringify({
-                "Base": "/gitapi/index/file/" + fileDir + "/" + newFilePath,
-                "Location": "/gitapi/diff/Default/file" + fileDir + "/" + newFilePath,
-                "New": "/file/" + fileDir + "/" + newFilePath,
-                "Old": "/gitapi/index/file/" + fileDir + "/" + newFilePath,
-                "Type": "Diff"
-            })
-            body += "\n"
-            body += "--BOUNDARY\n"
-            body += "Content-Type: plain/text\n\n"
-            body += "diff --git a/" + oldFile.path() + " b/" + newFile.path() + "\n";
-            body += "index " + oldFile.id().toString().substring(0, 7) + ".." + newFile.id().toString().substring(0, 7) + " " + newFile.mode().toString(8) + "\n";
-            body += "--- a/" + oldFile.path() + "\n";
-            body += "+++ b/" + newFile.path() + "\n"; 
-            
-            var hunks = patch.hunks();
 
-            hunks.forEach(function(hunk, i) {
+            if (newFilePath === filePath) {
 
-                body += hunk.header() + "\n"
+            	if (!uriOnly && !diffOnly) {
+	 				body += "--BOUNDARY\n"
+		            body += "Content-Type: application/json\n\n"
+            	}
+            	
+            	if (!diffOnly) {
+		            body += JSON.stringify({
+		                "Base": "/gitapi/index/file/" + fileDir + "/" + newFilePath,
+		                "Location": "/gitapi/diff/Default/file" + fileDir + "/" + newFilePath,
+		                "New": "/file/" + fileDir + "/" + newFilePath,
+		                "Old": "/gitapi/index/file/" + fileDir + "/" + newFilePath,
+		                "Type": "Diff"
+		            })
+		            body += "\n"
+            	}
 
-                var lines = hunk.lines()
-                /*
-                 * For some reason, nodegit returns basically the entire content of the file
-                 * for each line. 
-                 * 
-                 * The first line (separated by \n), seems to be what we want.
-                 */
-                lines.forEach(function(line, index) {
-                    var prefix = " "
-                    switch(line.origin()) {
-                        case git.Diff.LINE.ADDITION:
-                            prefix = "+";
-                            break;
-                        case git.Diff.LINE.DELETION:
-                            prefix ="-";
-                            break;
-                    }
+            	if (!uriOnly && !diffOnly) {
+		            body += "--BOUNDARY\n"
+		            body += "Content-Type: plain/text\n\n"
+            	}
 
-                    body += prefix + line.content().split("\n")[0] + "\n";
-                })
-            })
+            	if (!uriOnly) {
+	 				body += "diff --git a/" + oldFile.path() + " b/" + newFile.path() + "\n";
+		            body += "index " + oldFile.id().toString().substring(0, 7) + ".." + newFile.id().toString().substring(0, 7) + " " + newFile.mode().toString(8) + "\n";
+		            body += "--- a/" + oldFile.path() + "\n";
+		            body += "+++ b/" + newFile.path() + "\n"; 
+		            
+		            var hunks = patch.hunks();
+
+		            hunks.forEach(function(hunk, i) {
+
+		                body += hunk.header() + "\n"
+
+		                var lines = hunk.lines()
+		                /*
+		                 * For some reason, nodegit returns basically the entire content of the file
+		                 * for each line. 
+		                 * 
+		                 * The first line (separated by \n), seems to be what we want.
+		                 */
+		                lines.forEach(function(line, index) {
+		                    var prefix = " "
+		                    switch(line.origin()) {
+		                        case git.Diff.LINE.ADDITION:
+		                            prefix = "+";
+		                            break;
+		                        case git.Diff.LINE.DELETION:
+		                            prefix ="-";
+		                            break;
+		                    }
+
+		                    body += prefix + line.content().split("\n")[0] + "\n";
+		                })
+	            })
+            	}
+
+		        res.statusCode = 200;
+		        if (!diffOnly && !uriOnly) {
+		        	res.setHeader('Content-Type', 'multipart/related; boundary="BOUNDARY"');	
+		        } else if (diffOnly) {
+		        	res.setHeader('Content-Type', 'plain/text');
+		        } else {
+		        	res.setHeader('Content-Type', 'application/json')
+		        }
+		        
+		        res.setHeader('Content-Length', body.length);
+		        return res.end(body);
+	        }
         })
-
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'multipart/related; boundary="BOUNDARY"');
-        res.setHeader('Content-Length', body.length);
-        res.end(body);
     })
 }
 

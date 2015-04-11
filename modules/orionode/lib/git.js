@@ -80,7 +80,10 @@ module.exports = function(options) {
 					commit.getCommitMetadata(workspaceDir, fileRoot, req, res, next, rest);
 				}
 			} else if (rest.indexOf("diff/Default/file/") === 0) {
-				diff.getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next, rest);
+				var diffOnly = query.parts === 'diff';
+				var uriOnly = query.parts === 'uris';
+
+				diff.getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next, rest, diffOnly, uriOnly);
 			} else {
 				writeError(403, res);
 			}
