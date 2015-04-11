@@ -39,38 +39,31 @@ function getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next
 
             if (newFilePath === filePath) {
 
-            	if (!uriOnly && !diffOnly) {
-	 				body += "--BOUNDARY\n"
-		            body += "Content-Type: application/json\n\n"
-            	}
-            	
+            	URI = ""
+            	diffContent = ""
+
             	if (!diffOnly) {
-		            body += JSON.stringify({
+		            URI += JSON.stringify({
 		                "Base": "/gitapi/index/file/" + fileDir + "/" + newFilePath,
 		                "Location": "/gitapi/diff/Default/file" + fileDir + "/" + newFilePath,
 		                "New": "/file/" + fileDir + "/" + newFilePath,
 		                "Old": "/gitapi/index/file/" + fileDir + "/" + newFilePath,
 		                "Type": "Diff"
 		            })
-		            body += "\n"
-            	}
-
-            	if (!uriOnly && !diffOnly) {
-		            body += "--BOUNDARY\n"
-		            body += "Content-Type: plain/text\n\n"
+		            URI += "\n"
             	}
 
             	if (!uriOnly) {
-	 				body += "diff --git a/" + oldFile.path() + " b/" + newFile.path() + "\n";
-		            body += "index " + oldFile.id().toString().substring(0, 7) + ".." + newFile.id().toString().substring(0, 7) + " " + newFile.mode().toString(8) + "\n";
-		            body += "--- a/" + oldFile.path() + "\n";
-		            body += "+++ b/" + newFile.path() + "\n"; 
+	 				diffContent += "diff --git a/" + oldFile.path() + " b/" + newFile.path() + "\n";
+		            diffContent += "index " + oldFile.id().toString().substring(0, 7) + ".." + newFile.id().toString().substring(0, 7) + " " + newFile.mode().toString(8) + "\n";
+		            diffContent += "--- a/" + oldFile.path() + "\n";
+		            diffContent += "+++ b/" + newFile.path() + "\n"; 
 		            
 		            var hunks = patch.hunks();
 
 		            hunks.forEach(function(hunk, i) {
 
-		                body += hunk.header() + "\n"
+		                diffContent += hunk.header() + "\n"
 
 		                var lines = hunk.lines()
 		                /*
@@ -90,9 +83,24 @@ function getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next
 		                            break;
 		                    }
 
-		                    body += prefix + line.content().split("\n")[0] + "\n";
+		                    diffContent += prefix + line.content().split("\n")[0] + "\n";
 		                })
-	            })
+	            	})
+            	}
+
+            	var body = "";
+
+            	if (!uriOnly && !diffOnly) {
+	 				body += "--BOUNDARY\n";
+		            body += "Content-Type: application/json\n\n";
+		            body += URI;
+		            body += "--BOUNDARY\n"
+		            body += "Content-Type: plain/text\n\n";
+		            body += diffContent;
+            	} else if (!uriOnly) {
+            		body += diffContent;
+            	} else {
+            		body += URI;
             	}
 
 		        res.statusCode = 200;
