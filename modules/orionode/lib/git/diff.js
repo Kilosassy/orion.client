@@ -28,11 +28,24 @@ function getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next
     .then(function(diff) {
         var patches = diff.patches();
 
-
         patches.forEach(function(patch) {
 
             var oldFile = patch.oldFile();
             var newFile = patch.newFile();
+            var newFilePath = newFile.path();
+            
+            body += "--BOUNDARY\n"
+            body += "Content-Type: application/json\n\n"
+            body += JSON.stringify({
+                "Base": "/gitapi/index/file/" + fileDir + "/" + newFilePath,
+                "Location": "/gitapi/diff/Default/file" + fileDir + "/" + newFilePath,
+                "New": "/file/" + fileDir + "/" + newFilePath,
+                "Old": "/gitapi/index/file/" + fileDir + "/" + newFilePath,
+                "Type": "Diff"
+            })
+            body += "\n"
+            body += "--BOUNDARY\n"
+            body += "Content-Type: plain/text\n\n"
             body += "diff --git a/" + oldFile.path() + " b/" + newFile.path() + "\n";
             body += "index " + oldFile.id().toString().substring(0, 7) + ".." + newFile.id().toString().substring(0, 7) + " " + newFile.mode().toString(8) + "\n";
             body += "--- a/" + oldFile.path() + "\n";
@@ -67,7 +80,10 @@ function getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next
             })
         })
 
-        console.log(body)
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'multipart/related; boundary="BOUNDARY"');
+        res.setHeader('Content-Length', body.length);
+        res.end(body);
     })
 }
 
