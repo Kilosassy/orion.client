@@ -175,13 +175,7 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	})
 	.then(function(parent) {
 		fs.readFile(api.join(repoPath, ".git/config"), {encoding:'utf-8'}, function(err, config){
-			var config = ini.parse(config);
-			val = undefined;
-			findInPath(config, "", "user.name");
-			var user = val;
-			findInPath(config, "", "user.name");
-			var email = val;
-			var author = nodegit.Signature.create(user, email, 123456789, 60);
+			var author = nodegit.Signature.create(req.Body.Email, req.Body.User, 123456789, 60);
 
 	  		return theRepo.createCommit("HEAD", author, author, "message", oid, [parent]);
 		});
