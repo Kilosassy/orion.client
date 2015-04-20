@@ -49,6 +49,14 @@ module.exports = function(options) {
 				clone.getClone(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("remote/file/") === 0) {
 				remotes.getRemotes(workspaceDir, fileRoot, req, res, next, rest);
+			} else if (rest.indexOf("remote/") === 0 ) {
+				var remote = rest.replace("remote/", "").substring(0, rest.lastIndexOf("/file/")-"/file/".length-1);
+				if (remote.indexOf("/") === -1) {
+					remotes.getRemotesBranches(workspaceDir, fileRoot, req, res, next, rest);
+				}
+				else {
+					remotes.getRemotesBranchDetail(workspaceDir, fileRoot, req, res, next, rest);
+				}
 			} else if (rest.indexOf("branch/file/")===0) {
 				branches.getBranches(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("branch/")===0) {
