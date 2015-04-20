@@ -113,6 +113,8 @@ module.exports = function(options) {
 				branches.createBranch(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("diff/") === 0) {
 				diff.getDiffLocation(workspaceDir, fileRoot, req, res, next, rest);
+			} else if (rest.indexOf("remote/file/") === 0) {
+				remotes.addRemote(workspaceDir, fileRoot, req, res, next, rest);
 			} else {	
 				writeError(403, res);
 			}

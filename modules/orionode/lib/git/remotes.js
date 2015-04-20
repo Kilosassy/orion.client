@@ -53,6 +53,26 @@ function getRemotes(workspaceDir, fileRoot, req, res, next, rest) {
 	})
 }
 
+function addRemote(workspaceDir, fileRoot, req, res, next, rest) {
+	var repoPath = rest.replace("remote/file/", "");
+	var fileDir = repoPath;
+	repoPath = api.join(workspaceDir, repoPath);
+	
+	git.Repository.open(repoPath)
+	.then(function(repo) {
+		return git.Remote.create(repo, req.body.Remote, req.body.RemoteURI);
+	})
+	.then(function(remote) {
+		var resp = JSON.stringify({
+			"Location": "/gitapi/remote/" + remote.name() + "/file/" + fileDir
+		});
+		res.statusCode = 201;
+		res.setHeader('Content-Type', 'application/json');
+		res.setHeader('Content-Length', resp.length);
+		res.end(resp);
+	})
+}
+
 function deleteRemote(workspaceDir, fileRoot, req, res, next, rest) {
 	rest = rest.replace("remote/", "");
 	var split = rest.split("/file/");
@@ -71,5 +91,6 @@ function deleteRemote(workspaceDir, fileRoot, req, res, next, rest) {
 
 module.exports = {
 	getRemotes: getRemotes,
+	addRemote: addRemote,
 	deleteRemote: deleteRemote
 };
