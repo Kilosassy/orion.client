@@ -84,6 +84,11 @@ module.exports = function(options) {
 				var uriOnly = query.parts === 'uris';
 
 				diff.getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next, rest, diffOnly, uriOnly);
+			} else if (rest.indexOf("diff/Cached/file/") === 0) {
+				var diffOnly = query.parts === 'diff';
+				var uriOnly = query.parts === 'uris';
+
+				diff.getDiffBetweenIndexAndHead(workspaceDir, fileRoot, req, res, next, rest, diffOnly, uriOnly);
 			} else {
 				writeError(403, res);
 			}
