@@ -140,6 +140,8 @@ module.exports = function(options) {
 				tags.deleteTags(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("branch/") === 0) {
 				branches.deleteBranch(workspaceDir, fileRoot, req, res, next, rest);
+			} else if (rest.indexOf("remote/") === 0) {
+				remotes.deleteRemote(workspaceDir, fileRoot, req, res, next, rest);
 			} else {	
 				writeError(403, res);
 			}
