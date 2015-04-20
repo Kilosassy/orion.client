@@ -10,47 +10,46 @@
  *******************************************************************************/
 /*eslint-env node */
 var api = require('../api'), writeError = api.writeError;
+var async = require('async');
 var git = require('nodegit');
 
 function getRemotes(workspaceDir, fileRoot, req, res, next, rest) {
-	var remotes = [];
 	var repoPath = rest.replace("remote/file/", "");
 	repoPath = api.join(workspaceDir, repoPath);
+	var location = api.join(fileRoot, repoPath);
+	var repo;
+
 	git.Repository.open(repoPath)
-	.then(function(repo) {
-		if (repo) {
-			var location = api.join(fileRoot, repoPath);
-			repo.getRemotes()
-			.then(function(remotes){
-				remotes.forEach(function(remote) {
-					repo.getRemote(remote)
-					.then(function(remote){
-						remotes.push({
-							"CloneLocation": "/gitapi/clone"+location,
-							"IsGerrit": "false", // should check 
-							"GitUrl": remote.url(),
-							"Name": remote.name(),
-							"Location": location,
-							"Type": "Remote"
-						});
-					});
-				});
-			})
-			.then(function() {
-				var resp = JSON.stringify({
-					"Children": remotes,
+	.then(function(r) {
+		repo = r;
+		return git.Remote.list(r);
+	})
+	.then(function(remotes){
+		var r = [];
+		async.each(remotes, function(remote, cb) {
+			git.Remote.lookup(repo, remote)
+			.then(function(remote){
+				r.push({
+					"CloneLocation": "/gitapi/clone"+location,
+					"IsGerrit": "false", // should check 
+					"GitUrl": remote.url(),
+					"Name": remote.name(),
+					"Location": location,
 					"Type": "Remote"
 				});
-				res.statusCode = 200;
-				res.setHeader('Content-Type', 'application/json');
-				res.setHeader('Content-Length', resp.length);
-				res.end(resp);
+				cb();
 			});
-		}
-		else {
-			writeError(403, res);
-		}
-	});
+		}, function(err) {
+			var resp = JSON.stringify({
+				"Children": r,
+				"Type": "Remote"
+			});
+			res.statusCode = 200;
+			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Length', resp.length);
+			res.end(resp);
+		});
+	})
 }
 
 function deleteRemote(workspaceDir, fileRoot, req, res, next, rest) {
