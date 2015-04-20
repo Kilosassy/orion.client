@@ -151,7 +151,11 @@ function getDiffBetweenIndexAndHead(workspaceDir, fileRoot, req, res, next, rest
     }) 
 }
 
+function getDiffBetweenTwoCommits(workspaceDir, fileRoot, req, res, next, rest, diffOnly, uriOnly) {
+}
+
 module.exports = {
 	getDiffBetweenWorkingTreeAndHead: getDiffBetweenWorkingTreeAndHead,
-    getDiffBetweenIndexAndHead: getDiffBetweenIndexAndHead
+    getDiffBetweenIndexAndHead: getDiffBetweenIndexAndHead,
+    getDiffBetweenTwoCommits: getDiffBetweenTwoCommits
 };
