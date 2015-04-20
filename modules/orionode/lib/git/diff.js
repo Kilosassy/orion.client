@@ -29,11 +29,11 @@ function getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next
         return git.Diff.indexToWorkdir(repo, null, null);
     })
     .then(function(diff) {
-        processDiff(diff, res, diffOnly, uriOnly);
+        processDiff(diff, filePath, fileDir, res, diffOnly, uriOnly);
     })
 }
 
-function processDiff(diff, res, diffOnly, uriOnly) {
+function processDiff(diff, filePath, fileDir, res, diffOnly, uriOnly) {
     var patches = diff.patches();
     patches.forEach(function(patch) {
 
@@ -122,19 +122,30 @@ function processDiff(diff, res, diffOnly, uriOnly) {
     })
 }
 
-function getDiffBetweenIndexAndHead(workspaceDir, fileRoot, req, res, next, rest) {
+function getDiffBetweenIndexAndHead(workspaceDir, fileRoot, req, res, next, rest, diffOnly, uriOnly) {
     var repoPath = rest.replace("diff/Cached/file/", "");
     var filePath = repoPath.substring(repoPath.indexOf("/")+1);
     repoPath = repoPath.substring(0, repoPath.indexOf("/"));
+    console.log(repoPath)
     var fileDir = repoPath;
     repoPath = api.join(workspaceDir, repoPath);
     var body = "";
 
     git.Repository.open(repoPath)
     .then(function(repo) {
-        return git.Diff.indexToWorkdir(repo, head , null);
+        console.log("got repo")
+        repo.head()
+        .then(function(ref) {
+            console.log('got ref')
+            return git.Tree.lookup(repo, ref);
+        })
+        .then(function(tree) {
+            console.log("got tree")
+            return git.Diff.treeToWorkdir(repo, tree, NULL);
+        })
     })
     .then(function(diff) {
+        console.log("got diff")
         processDiff(diff, res, diffOnly, uriOnly);
     })
 }
