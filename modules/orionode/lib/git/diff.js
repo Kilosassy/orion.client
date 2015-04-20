@@ -160,7 +160,6 @@ function getDiffBetweenTwoCommits(workspaceDir, fileRoot, req, res, next, rest, 
     var repo;
     var tree1;
     var tree2;
-    console.log(commitHashes)
 
     git.Repository.open(repoPath)
     .then(function(r) {
@@ -192,8 +191,26 @@ function getDiffBetweenTwoCommits(workspaceDir, fileRoot, req, res, next, rest, 
     }) 
 }
 
+function getDiffLocation(workspaceDir, fileRoot, req, res, next, rest) {
+	var rest = rest.replace("diff/", "");
+    var repoPath = rest.substring(rest.indexOf("/")+1).replace("file/", "");
+    var oldCommit = rest.substring(0, rest.indexOf("/"));
+    var fileDir = repoPath;
+    repoPath = api.join(workspaceDir, repoPath);
+    var newCommit = req.body.New
+    var URL = "/gitapi/diff/" + oldCommit + ".." + newCommit + "/file/" + fileDir
+
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Location', URL)
+    res.end();
+
+}
+
+
 module.exports = {
 	getDiffBetweenWorkingTreeAndHead: getDiffBetweenWorkingTreeAndHead,
     getDiffBetweenIndexAndHead: getDiffBetweenIndexAndHead,
-    getDiffBetweenTwoCommits: getDiffBetweenTwoCommits
+    getDiffBetweenTwoCommits: getDiffBetweenTwoCommits,
+    getDiffLocation: getDiffLocation
 };
