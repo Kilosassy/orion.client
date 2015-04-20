@@ -41,7 +41,7 @@ function processDiff(diff, filePath, fileDir, res, diffOnly, uriOnly) {
         var newFile = patch.newFile();
         var newFilePath = newFile.path();
 
-        if (newFilePath === filePath) {
+        if (!filePath || newFilePath === filePath) {
 
             URI = ""
             diffContent = ""
@@ -128,7 +128,6 @@ function getDiffBetweenIndexAndHead(workspaceDir, fileRoot, req, res, next, rest
     repoPath = repoPath.substring(0, repoPath.indexOf("/"));
     var fileDir = repoPath;
     repoPath = api.join(workspaceDir, repoPath);
-    var body = "";
 
     var repo;
 
@@ -152,6 +151,45 @@ function getDiffBetweenIndexAndHead(workspaceDir, fileRoot, req, res, next, rest
 }
 
 function getDiffBetweenTwoCommits(workspaceDir, fileRoot, req, res, next, rest, diffOnly, uriOnly) {
+    var rest = rest.replace("diff/", "");
+    var repoPath = rest.substring(rest.indexOf("/")+1).replace("file/", "");
+    var commitHashes = rest.substring(0, rest.indexOf("/")).split("..");
+    var fileDir = repoPath;
+    repoPath = api.join(workspaceDir, repoPath);
+
+    var repo;
+    var tree1;
+    var tree2;
+    console.log(commitHashes)
+
+    git.Repository.open(repoPath)
+    .then(function(r) {
+        repo = r;
+    })
+    .then(function() {
+        return repo.getCommit(commitHashes[0]);
+    })
+    .then(function(commit) {
+        return commit.getTree()
+    })
+    .then(function(tree) {
+        tree1 = tree;
+    })
+    .then(function() {
+        return repo.getCommit(commitHashes[1]);
+    })
+    .then(function(commit) {
+        return commit.getTree()
+    })
+    .then(function(tree) {
+        tree2 = tree;
+    })
+    .then(function() {
+        return git.Diff.treeToTree(repo, tree2, tree1, null);
+    })
+    .then(function(diff) {
+        processDiff(diff, null, fileDir, res, diffOnly, uriOnly);
+    }) 
 }
 
 module.exports = {

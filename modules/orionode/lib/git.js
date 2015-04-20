@@ -93,7 +93,7 @@ module.exports = function(options) {
 				var diffOnly = query.parts === 'diff';
 				var uriOnly = query.parts === 'uris';
 
-				getDiffBetweenTwoCommits(workspaceDir, fileRoot, req, res, next, rest, diffOnly, uriOnly)
+				diff.getDiffBetweenTwoCommits(workspaceDir, fileRoot, req, res, next, rest, diffOnly, uriOnly)
 			} else {
 				writeError(403, res);
 			}
