@@ -15,8 +15,8 @@ var git = require('nodegit');
 
 function getRemotes(workspaceDir, fileRoot, req, res, next, rest) {
 	var repoPath = rest.replace("remote/file/", "");
+	var fileDir = repoPath;
 	repoPath = api.join(workspaceDir, repoPath);
-	var location = api.join(fileRoot, repoPath);
 	var repo;
 
 	git.Repository.open(repoPath)
@@ -29,12 +29,13 @@ function getRemotes(workspaceDir, fileRoot, req, res, next, rest) {
 		async.each(remotes, function(remote, cb) {
 			git.Remote.lookup(repo, remote)
 			.then(function(remote){
+				var name = remote.name();
 				r.push({
-					"CloneLocation": "/gitapi/clone"+location,
+					"CloneLocation": "/gitapi/clone/file/" + fileDir,
 					"IsGerrit": "false", // should check 
 					"GitUrl": remote.url(),
-					"Name": remote.name(),
-					"Location": location,
+					"Name": name,
+					"Location": "/gitapi/remote/" + name + "/file/" + fileDir,
 					"Type": "Remote"
 				});
 				cb();
