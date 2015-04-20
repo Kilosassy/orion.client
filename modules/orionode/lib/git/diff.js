@@ -126,28 +126,29 @@ function getDiffBetweenIndexAndHead(workspaceDir, fileRoot, req, res, next, rest
     var repoPath = rest.replace("diff/Cached/file/", "");
     var filePath = repoPath.substring(repoPath.indexOf("/")+1);
     repoPath = repoPath.substring(0, repoPath.indexOf("/"));
-    console.log(repoPath)
     var fileDir = repoPath;
     repoPath = api.join(workspaceDir, repoPath);
     var body = "";
 
+    var repo;
+
     git.Repository.open(repoPath)
-    .then(function(repo) {
-        console.log("got repo")
-        repo.head()
-        .then(function(ref) {
-            console.log('got ref')
-            return git.Tree.lookup(repo, ref);
-        })
-        .then(function(tree) {
-            console.log("got tree")
-            return git.Diff.treeToWorkdir(repo, tree, NULL);
-        })
+    .then(function(r) {
+    	repo = r;
+        return repo.head()
+    })
+    .then(function(ref) {
+    	return repo.getReferenceCommit(ref)
+    })
+	.then(function(commit) {
+		return commit.getTree()
+	})
+    .then(function(tree) {
+        return git.Diff.treeToWorkdir(repo, tree, null);
     })
     .then(function(diff) {
-        console.log("got diff")
-        processDiff(diff, res, diffOnly, uriOnly);
-    })
+        processDiff(diff, filePath, fileDir, res, diffOnly, uriOnly);
+    }) 
 }
 
 module.exports = {
