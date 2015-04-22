@@ -18,10 +18,10 @@ function stageFile(workspaceDir, rest) {
         var repo;
         var index;
 
-        var start = rest.substring(rest.indexOf("/A/") + 3);
-        var it = rest.substring(rest.indexOf("/A/") + 3, 3 + rest.indexOf("/A/") + start.indexOf("/"));
+        //var start = rest.substring(rest.indexOf("/A/") + 3);
+        var it = rest.substring(rest.indexOf("/index/file/" + 12));//rest.substring(rest.indexOf("/A/") + 3, 3 + rest.indexOf("/A/") + start.indexOf("/"));
         var dir = path.join(workspaceDir, it);
-        var filename = rest.substring(1 + 3 + rest.indexOf("/A/") + start.indexOf("/"));
+        var filename = dir;//rest.substring(1 + 3 + rest.indexOf("/A/") + start.indexOf("/"));
 
         console.log(dir + "/.git");
         console.log(filename);
@@ -64,9 +64,9 @@ function unstageFile(workspaceDir, rest) {
         var index;
 
         var start = rest.substring(rest.indexOf("/E/") + 3);
-        var it = rest.substring(rest.indexOf("/E/") + 3, 3 + rest.indexOf("/E/") + start.indexOf("/"));
+        var it = rest.substring(rest.indexOf("/index/file") + 12);//rest.substring(rest.indexOf("/E/") + 3, 3 + rest.indexOf("/E/") + start.indexOf("/"));
         var dir = path.join(workspaceDir, it);
-        var filename = rest.substring(1 + 3 + rest.indexOf("/E/") + start.indexOf("/"));
+        var filename = dir;//rest.substring(1 + 3 + rest.indexOf("/E/") + start.indexOf("/"));
 
         console.log(dir + "/.git");
         console.log(filename);
