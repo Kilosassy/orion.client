@@ -53,34 +53,55 @@ function getRemotes(workspaceDir, fileRoot, req, res, next, rest) {
 	})
 }
 
+
+/* */
 function getRemotesBranches(workspaceDir, fileRoot, req, res, next, rest) {
 	var remoteName = rest.replace("remote/", "").substring(0, rest.lastIndexOf("/file/")-"/file/".length-1);
 	var repoPath = rest.substring(rest.lastIndexOf("/file/")).replace("/file/","");
 	var fileDir = repoPath;
 	repoPath = api.join(workspaceDir, repoPath);
 	var repo;
-	console.log(remoteName);
 	git.Repository.open(repoPath)
 	.then(function(repo) {
 		repo.getReferences(git.Reference.TYPE.OID)
 		.then(function(referenceList) {
 			var branches = []
-	 		referenceList.forEach(function(ref) {
- 				if (ref.isBranch()) {
-					rName = ref.name().replace("refs/heads/", "");
-					console.log(rName);
-					if (rName.startsWith(remoteName)) {
-						branches.push( {
-							"CommitLocation": "http://localhost:8080/git/commit/bbbcc34fe10c2d731e7f97618f4f469c2f763a31/file/E/",
-							"Id": "bbbcc34fe10c2d731e7f97618f4f469c2f763a31",
-							"Location": "http://localhost:8080/git/remote/origin/master/file/E/",
-							"Name": "refs/remotes/origin/master"
-						})
-					}
+			async.each(referenceList, iterator, function(err) {
+				if (err) {
+					return writeError(403, res);
 				}
+				var resp = JSON.stringify({
+					"Children": branches,
+					"Location": "/gitapi/remote/" + remoteName + "/file/" + fileDir,
+					"Name": remoteName
+				});
+				res.statusCode = 200;
+				res.setHeader('Content-Type', 'application/json');
+				res.setHeader('Content-Length', resp.length);
+				res.end(resp);
 			});
 
-			console.log(branches)
+			function iterator(ref, callback) {
+				if (ref.isRemote()) {
+					var rName = ref.name().replace("refs/remotes/", "");
+					if (rName.indexOf(remoteName) === 0) {
+						repo.getBranchCommit(ref)
+						.then(function(commit) {
+							branches.push({
+								"CommitLocation": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir,
+								"Id": commit.sha(),
+								"Location": "/gitapi/remote/" + remoteName + "/file/" + fileDir,
+								"Name": ref.name()
+							})
+							callback();
+						});
+					} else {
+						callback();
+					}					
+				} else {
+					callback();
+				}
+			}
 		});
 	});
 }
