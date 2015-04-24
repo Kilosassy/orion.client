@@ -107,10 +107,8 @@ module.exports = function(options) {
 			}
 		},
 		POST: function(req, res, next, rest) {
-			if(rest.indexOf("git/clone") === 0) {
-				clone.postClone(workspaceDir, fileRoot, req, res, next, rest);
-			} else if(rest.indexOf("clone/") === 0){
-				clone.postInit(workspaceDir, req, res);
+			if (rest.indexOf("clone/") === 0){
+				clone.postInit(workspaceDir, fileRoot, req, res, next, rest);
 			} else if(rest.indexOf("index/file/E") === 0) {
 				add.postStage(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("config/") === 0) {

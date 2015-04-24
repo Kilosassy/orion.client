@@ -12,7 +12,6 @@
 var api = require('../api'), writeError = api.writeError;
 var git = require('nodegit');
 var path = require("path");
-var Clone = git.Clone;
 var fs = require('fs');
 var async = require('async');
 
@@ -99,75 +98,61 @@ function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 	}
 }
 
-function postInit(workspaceDir, req, res) {
-	var initDir = workspaceDir + '/' + req.body.Name;
+function postInit(workspaceDir, fileRoot, req, res, next, rest) {
+	if (req.body.GitUrl) {
+		postClone(workspaceDir, fileRoot, req, res, next, rest);
+	} else {
+		var initDir = workspaceDir + '/' + req.body.Name;
 
-    fs.mkdir(initDir, function(err){
-		if (err) {
-	    	return writeError(409, res);
-        }
+	    fs.mkdir(initDir, function(err){
+			if (err) {
+		    	return writeError(409, res);
+	        }
 
-        git.Repository.init(initDir, 0)
-	    .then(function(repo) {
-			var response = {
-		       	"Location": "/gitapi/clone/file/" + req.body.Name
-		    }
-		    var resp = JSON.stringify(response)
-		    res.statusCode = 201;
-			res.setHeader('Content-Type', 'application/json');
-			res.setHeader('Content-Length', resp.length);
-			res.end(resp);
+	        git.Repository.init(initDir, 0)
+		    .then(function(repo) {
+				var response = {
+			       	"Location": "/gitapi/clone/file/" + req.body.Name
+			    }
+			    var resp = JSON.stringify(response)
+			    res.statusCode = 201;
+				res.setHeader('Content-Type', 'application/json');
+				res.setHeader('Content-Length', resp.length);
+				res.end(resp);
 
-	    }, function(err) {
-	    	return writeError(409, res);
+		    }, function(err) {
+		    	return writeError(409, res);
+		    });
+
 	    });
-
-    });
+	}
 }
 
 function postClone(workspaceDir, fileRoot, req, res, next, rest) {
-	var req_data = req.body;
-	var url = req_data.GitUrl;
-	var the_dir = workspaceDir.substring(0, wworkspaceDir.lastIndexOf("/"));
-	var cache = [];
-	/*console.log("POST clone with data: " + JSON.stringify(req, function(key, value) {
-	    if (typeof value === 'object' && value !== null) {
-	        if (cache.indexOf(value) !== -1) {
-	            // Circular reference found, discard key
-	            return;
-	        }
-	        // Store value in our collection
-	        cache.push(value);
-	    }
-	    return value;
-	}));*/
-	// We want to clone a repo
-	var clone_dir = the_dir + url.substring(url.lastIndexOf("/"), url.indexOf(".git"));
+	var url = req.body.GitUrl;
 
-	console.log("trying to clone into " + clone_dir);
-	Clone.clone(url, clone_dir).then(function(repo) {
-		console.log("successfully cloned " + url);
-		return repo.id;
-	}).then(function(id) {
-	//we got the repo
-	console.log("POST git/clone: sucess!");
-	response = {
-		"Id": id,
-		"Location": workspaceDir,
-		"Message": "Cloning " + workspaceDir + url,
-		"PercentComplete": 0,
-		"Running": true
-	};
-	res.statusCode = 200;
-	res.setHeader('Content-Type', 'application/json');
-	res.setHeader('Content-Length', resp.length);
-	res.end(JSON.stringify(response));
-	}, function(err) {
+	git.Clone.clone(url, workspaceDir)
+	.then(function() {
+		// I think clone will return when it finishes cloning, so we just give it a fake task and 100%
+		var resp = JSON.stringify({
+			"Id": "11111",
+			"Location": "/task/id/THISISAPLACEHOLDER",
+			"Message": "Cloning " + workspaceDir + " @ " + url,
+			"PercentComplete": 100,
+			"Running": false
+		});
+
+		res.statusCode = 201;
+		res.setHeader('Content-Type', 'application/json');
+		res.setHeader('Content-Length', resp.length);
+		res.end(resp);
+	})
+	.catch(function(err) {
 		// some kind of error with cloning a repo
 		console.log("POST git/clone: failure!");
 		console.log(err);
 		writeError(403, res);
-	  });
+	});
 }
 
 module.exports = {
