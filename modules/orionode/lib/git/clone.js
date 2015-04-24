@@ -42,9 +42,8 @@ function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 
 	function checkDirectory(dir, cb) {
 		//Check if the dir is a directory
-
 		fs.lstat(dir, function(err, stat) {
-			if (err || !stat.isDirectory()) return cb();
+			if (err || !stat.isDirectory()) return cb(err);
 			var base = path.basename(dir);
 			git.Repository.open(dir)
 			.then(function(repo) {
@@ -68,29 +67,31 @@ function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 
 				repo.getRemotes()
 				.then(function(remotes){
-					remotes.forEach(function(remote) {
+					async.each(remotes, function(remote, callback) {
 						if (remote === "origin") {
 							repo.getRemote(remote)
 							.then(function(remote){
 								repoInfo.GitUrl = remote.url();
-								return cb();
+								callback();
 							});
-						} 
-						
-					});
+						} else {
+							callback();
+						}
+					}, function(err) {
+						repos.push(repoInfo);
+						return cb();	
+					})
 				})
-				.then(function() {
-					repos.push(repoInfo);
-				});
 	 		})
 			.catch(function(err) {
 				fs.readdir(dir, function(err, files) {
-					if (err) return cb();
+					if (err) {
+						return cb(err);
+					}
 
 					files = files.map(function(file) {
 						return path.join(dir, file);
 					})
-
 					async.each(files, checkDirectory, cb);
 				})	
 			})
@@ -101,24 +102,27 @@ function getClone(workspaceDir, fileRoot, req, res, next, rest) {
 function postInit(workspaceDir, req, res) {
 	var initDir = workspaceDir + '/' + req.body.Name;
 
-        console.log("Trying to init " + initDir);
-        fs.mkdir(initDir, function(err){
-				if(err){
-                                	writeError(409, res);
-                                        console.log(err);
-                                }
-                          });
-	git.Repository.init(initDir, 0)
-        .then(function(repo) {
-        	var response = {
-                	"Location": initDir
-                }
-                res.statusCode = 201;
-                res.end(JSON.stringify(response));
-              },
-              function(err) {
-                console.log(err);
-              });
+    fs.mkdir(initDir, function(err){
+		if (err) {
+	    	return writeError(409, res);
+        }
+
+        git.Repository.init(initDir, 0)
+	    .then(function(repo) {
+			var response = {
+		       	"Location": "/gitapi/clone/file/" + req.body.Name
+		    }
+		    var resp = JSON.stringify(response)
+		    res.statusCode = 201;
+			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Length', resp.length);
+			res.end(resp);
+
+	    }, function(err) {
+	    	return writeError(409, res);
+	    });
+
+    });
 }
 
 function postClone(workspaceDir, fileRoot, req, res, next, rest) {
