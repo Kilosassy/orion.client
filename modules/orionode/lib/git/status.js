@@ -20,7 +20,9 @@ function getStatus(workspaceDir, fileRoot, req, res, next, rest) {
     repoPath = api.join(workspaceDir, repoPath);
     git.Repository.open(repoPath)
         .then(function(repo) {
-            var statuses = repo.getStatusExt();
+            var statuses = repo.getStatusExt({
+                flags: git.Status.OPT.INCLUDE_UNTRACKED
+            });
 
             var added = [],
                 changed = [], // no idea
@@ -45,10 +47,15 @@ function getStatus(workspaceDir, fileRoot, req, res, next, rest) {
             }
 
             statuses.forEach(function(file) {
-                if (file.isNew()) { untracked.push(returnContent(file)); }
-                if (file.isModified()) { modified.push(returnContent(file)); }
-                if (file.isDeleted()) { removed.push(returnContent(file)); }
-                if (file.isTypechange()) { changed.push(returnContent(file)); }
+                if (file.statusBit() >= git.Status.STATUS.WT_NEW) { // Indicates that the files is new to the working directory.
+                    untracked.push(returnContent(file));
+                } else { // These changes are in the index
+                    added.push(returnContent(file));
+                    if (file.isModified()) { modified.push(returnContent(file)); }
+                    if (file.isDeleted()) { removed.push(returnContent(file)); }
+                    if (file.isTypechange()) { changed.push(returnContent(file)); }
+                }
+                
                 //		        if (status.isRenamed()) { words.push("RENAMED"); }
                 //		        if (status.isIgnored()) { words.push("IGNORED"); }
             });

@@ -11,52 +11,8 @@
 /*eslint-env node */
 var api = require('../api'), writeError = api.writeError;
 var git = require('nodegit');
+var async = require('async');
 var path = require("path");
-
-function stageFile(workspaceDir, rest) {
-        console.log("rest: " + rest);
-        var repo;
-        var index;
-
-        //var start = rest.substring(rest.indexOf("/A/") + 3);
-        var it = rest.substring(rest.indexOf("/index/file/" + 12));//rest.substring(rest.indexOf("/A/") + 3, 3 + rest.indexOf("/A/") + start.indexOf("/"));
-        var dir = path.join(workspaceDir, it);
-        var filename = dir;//rest.substring(1 + 3 + rest.indexOf("/A/") + start.indexOf("/"));
-
-        console.log(dir + "/.git");
-        console.log(filename);
-
-        git.Repository.open(dir + "/.git")
-        .then(function(repoResult) {
-            repo = repoResult;
-          return repoResult;
-        })
-        .then(function(repo) {
-          return repo.openIndex();
-        })
-        .then(function(indexResult) {
-          index = indexResult;
-          return index.read(1);
-        })
-        .then(function() {
-          // this file is in the root of the directory and doesn't need a full path
-          return index.addByPath(filename);
-        })
-        .then(function() {
-          // this file is in a subdirectory and can use a relative path
-          return index.addByPath(path.join(dir, filename));
-        })
-        .then(function() {
-          // this will write both files to the index
-          return index.write();
-        })
-        .then(function() {
-          return index.writeTree();
-        })
-        .done(function(tree) {
-          console.log("done");
-        });
-}
 
 function unstageFile(workspaceDir, rest) {
         console.log("rest: " + rest);
@@ -148,19 +104,51 @@ function getFileIndex(workspaceDir, fileRoot, req, res, next, rest) {
 
 // Stage files
 function putStage(workspaceDir, fileRoot, req, res, next, rest) {
-    var req_data = req.body;
-    console.log("trying to stage files");
-    if (req_data.hasOwnProperty("Path")) {
-        for (var i = 0; i < req_data.Path.length; i++) {
-            stageFile(workspaceDir, rest + req_data.Path[i]);
-        }
-        res.statusCode = 200;
-        res.end();
+  var repo;
+  var index;
+
+  var repoPath = rest.replace("index/file/", "");
+  var filePath = repoPath.substring(repoPath.indexOf("/")+1);
+  repoPath = repoPath.substring(0, repoPath.indexOf("/"));
+  var fileDir = repoPath;
+  repoPath = api.join(workspaceDir, repoPath);
+
+  git.Repository.open(repoPath)
+  .then(function(repoResult) {
+    repo = repoResult;
+    return repoResult;
+  })
+  .then(function(repo) {
+    return repo.openIndex();
+  })
+  .then(function(indexResult) {
+    index = indexResult;
+    return index.read(1);
+  })
+  .then(function() {
+    if (req.body.Path) {
+      async.each(req.body.Path, function(path, cb) {
+        index.addByPath(path)
+        .then(cb)
+      }, function(err) {
+        return;
+      })
     } else {
-        stageFile(workspaceDir, rest);
-        res.statusCode = 200;
-        res.end();
+      return index.addByPath(filePath);
     }
+  })
+  .then(function() {
+    // this will write both files to the index
+    return index.write();
+  })
+  .then(function() {
+    return index.writeTree();
+  })
+  .done(function(tree) {
+    console.log("done");
+    res.statusCode = 200;
+    res.end();
+  });
 }
 
 // unstage files

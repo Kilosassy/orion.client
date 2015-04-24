@@ -27,7 +27,7 @@ function getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next
     git.Repository.open(repoPath)
     .then(function(repo) {
         return git.Diff.indexToWorkdir(repo, null, {
-                flags: git.Diff.OPTION.INCLUDE_UNTRACKED | git.Diff.OPTION.RECURSE_UNTRACKED_DIRS
+                flags: git.Diff.OPTION.UPDATE_INDEX | git.Diff.OPTION.INCLUDE_UNTRACKED | git.Diff.OPTION.RECURSE_UNTRACKED_DIRS
             });
     })
     .then(function(diff) {
