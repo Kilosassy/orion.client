@@ -26,17 +26,19 @@ function getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next
 
     git.Repository.open(repoPath)
     .then(function(repo) {
-        return git.Diff.indexToWorkdir(repo, null, null);
+        return git.Diff.indexToWorkdir(repo, null, {
+                flags: git.Diff.OPTION.INCLUDE_UNTRACKED | git.Diff.OPTION.RECURSE_UNTRACKED_DIRS
+            });
     })
     .then(function(diff) {
         processDiff(diff, filePath, fileDir, res, diffOnly, uriOnly);
     })
 }
 
+/* Currently does not display untracked files correctly */
 function processDiff(diff, filePath, fileDir, res, diffOnly, uriOnly) {
     var patches = diff.patches();
     patches.forEach(function(patch) {
-
         var oldFile = patch.oldFile();
         var newFile = patch.newFile();
         var newFilePath = newFile.path();
@@ -83,7 +85,7 @@ function processDiff(diff, filePath, fileDir, res, diffOnly, uriOnly) {
                                 prefix = "+";
                                 break;
                             case git.Diff.LINE.DELETION:
-                                prefix ="-";
+                                prefix = "-";
                                 break;
                         }
 
