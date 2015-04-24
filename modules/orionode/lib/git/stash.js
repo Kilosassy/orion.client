@@ -13,7 +13,12 @@ var api = require('../api'), writeError = api.writeError;
 var git = require('nodegit');
 var path = require("path");
 
-
+/*
+ * Stash for_each available after Nodegit commit f91c501
+ * Merge pull request #495 from nodegit/enable-stash
+ * Enable `git_stash_foreach`
+ *
+ */ 
 function getStash(workspaceDir, fileRoot, req, res, next, rest) {
 
 	writeError(409, res);
