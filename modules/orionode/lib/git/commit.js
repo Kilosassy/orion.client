@@ -151,7 +151,7 @@ function getFileContent(workspaceDir, fileRoot, req, res, next, rest) {
 function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	var repoPath = rest.replace("commit/HEAD/file/", "");
 	var filePath = repoPath.substring(repoPath.indexOf("/")+1);
-	repoPath = repoPath.substring(0, repoPath.indexOf("/"));
+	repoPath = repoPath.indexOf("/") === -1 ? repoPath : repoPath.substring(0, repoPath.indexOf("/"));
 	var fileDir = repoPath;
 	repoPath = api.join(workspaceDir, repoPath);
 
@@ -174,32 +174,32 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	})
 	.then(function(oidResult) {
 		oid = oidResult;
-		return nodegit.Reference.nameToId(theRepo, "HEAD");
+		return git.Reference.nameToId(theRepo, "HEAD");
 	})
 	.then(function(head) {
 		return theRepo.getCommit(head);
 	})
 	.then(function(parent) {
+		parentCommit = parent;
+
 		if (req.body.AuthorEmail) {
 			author = git.Signature.now(req.body.AuthorName, req.body.AuthorEmail);
-			commiter = git.Signature.now(req.body.CommiterName, req.body.CommiterEmail);
+			commiter = git.Signature.now(req.body.CommitterName, req.body.CommitterEmail);
 		} else {
 			author = git.Signature.default(theRepo);	
 			commiter = git.Signature.default(theRepo);
 		}
 		
-		return theRepo.createCommit("HEAD", author, author, "message", oid, [parent]);
+		return theRepo.createCommit("HEAD", author, commit, "message", oid, [parent]);
 	})
 	.then(function(id) {
 		return git.Commit.lookup(theRepo, id);
 	})
 	.then(function(commit) {
 		thisCommit = commit;
-		return git.Commit.parent(1);
 	})
 	.then(function(parent) {
-		parentCommit = parent;
-		return git.Diff.treeToTree(theRepo, parentCommit.tree(), thisCommit.tree(), null);
+		return git.Diff.treeToTree(theRepo, parentCommit.getTree(), thisCommit.getTree(), null);
 	})
 	.then(function(diff) {
 		var patches = diff.patches();
