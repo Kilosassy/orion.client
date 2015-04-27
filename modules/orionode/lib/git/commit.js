@@ -58,7 +58,7 @@ function getCommitRevision(workspaceDir, fileRoot, req, res, next, rest) {
 	git.Repository.open(repoPath)
 	.then(function(repo) {
 		theRepo = repo;
-		return repo.getReferenceCommit(branches[0]);
+		return theRepo.getReferenceCommit(branches[0]);
 	})
 	.then(function(commit) {
 		finalCommit = commit;
@@ -66,76 +66,85 @@ function getCommitRevision(workspaceDir, fileRoot, req, res, next, rest) {
 	})
 	.then(function(commit) {
 		startingCommit = commit;
-		var history = commit.history();
+		oid = commit.id();
+		hideOid = finalCommit.id();
+
+	    var revWalk = theRepo.createRevWalk();
+
+	    revWalk.sorting(git.Revwalk.SORT.TOPOLOGICAL);
+
+	    revWalk.push(oid);
+
+	    if (oid.toString() !== hideOid.toString()) { // Only hide if the reference commits aren't the same
+	    	console.log("hid")
+	    	revWalk.hide(hideOid);
+	    }
+	    
 		var commits = [];
 
-		history.on("commit", function(commit) {
-			console.log(commit.sha())
-			console.log(finalCommit.sha())
-			if (commit.sha() === finalCommit.sha()) {
-				console.log("equals ===")
-				return;
-			} else {
-				console.log("not ===")
-			}
+		function writeResponse() {
+			var referenceName = branches[0];
+			var resp = JSON.stringify({
+				"Children": commits,
+				"RepositoryPath": "",
+				"toRef": {
+					"CloneLocation": "/gitapi/clone/file/" + fileDir,
+					"CommitLocation": "/gitapi/commit/" + referenceName + "/file/" + fileDir,
+					"Current": true,
+					"HeadLocation": "/gitapi/commit/HEAD/file/" + fileDir,
+					"Location": "/gitapi/branch/" + referenceName + "/file/" + fileDir,
+					"Name": referenceName,
+					"Type": "Branch"
+				}
+			});
+			res.statusCode = 200;
+			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Length', resp.length);
+			res.end(resp);
+		}
 
-			if (commit.sha() == finalCommit.sha()) {
-				console.log("equals ==")
-				return;
-			} else {
-				console.log("not ==")
-			}
- 
-			if ((!numToReturn && commit === finalCommit) || (numToReturn && commits.length === numToReturn)) {
-				var referenceName = branches[0];
-				var resp = JSON.stringify({
-					"Children": commits,
-					"RepositoryPath": "",
-					"toRef": {
-						"CloneLocation": "/gitapi/clone/file/" + fileDir,
-						"CommitLocation": "/gitapi/commit/" + referenceName + "/file/" + fileDir,
-						"Current": true,
-						"HeadLocation": "/gitapi/commit/HEAD/file/" + fileDir,
-						"Location": "/gitapi/branch/" + referenceName + "/file/" + fileDir,
-						"Name": referenceName,
-						"Type": "Branch"
+	    function walk() {
+			return revWalk.next()
+			.then(function(oid) {
+				if (!oid) {
+					if (numToReturn && commits.length < numToReturn) {
+						writeError(400, res);
+						return;
 					}
-				});
-				res.statusCode = 200;
-				res.setHeader('Content-Type', 'application/json');
-				res.setHeader('Content-Length', resp.length);
-				res.end(resp);
-				return;
-			} else {
-				commits.push({
-					"AuthorEmail": commit.author().name(), 
-					"AuthorName": commit.author().email(),
-					"Children":[],
-					"CommitterEmail": commit.committer().email(),
-					"CommitterName": commit.committer().name(),
-					"ContentLocation": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir + "?parts=body",
-					"DiffLocation": "/gitapi/diff/" + commit.sha() + "/file/" + fileDir,
-					"Diffs":[],
-					"Location": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir,
-					"Message": commit.message(),
-					"Name": commit.sha(),
-					"Time": commit.timeMs(),
-					"Type": "Commit"
-				});
-			}
-		})
 
-		history.on("end", function(commits) {
-			if (commits.length < numToReturn) {
-				writeError(400, res);
-				return;
-			} else {
-				console.log("ended")
-				console.log(commits.length)
-			}
-		})
+					writeResponse();
+					return;
+				}
 
-		history.start();
+				return theRepo.getCommit(oid)
+				.then(function(commit) {
+					commits.push({
+						"AuthorEmail": commit.author().name(), 
+						"AuthorName": commit.author().email(),
+						"Children":[],
+						"CommitterEmail": commit.committer().email(),
+						"CommitterName": commit.committer().name(),
+						"ContentLocation": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir + "?parts=body",
+						"DiffLocation": "/gitapi/diff/" + commit.sha() + "/file/" + fileDir,
+						"Diffs":[],
+						"Location": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir,
+						"Message": commit.message(),
+						"Name": commit.sha(),
+						"Time": commit.timeMs(),
+						"Type": "Commit"
+					});
+
+					if (numToReturn && commits.length === numToReturn) {
+						writeResponse();
+						return;
+					}
+
+					return walk();
+				});
+			});
+		}
+
+    	return walk();
 	})
 
 }
