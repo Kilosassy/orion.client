@@ -47,15 +47,26 @@ function getStatus(workspaceDir, fileRoot, req, res, next, rest) {
             }
 
             statuses.forEach(function(file) {
-                if (file.statusBit() >= git.Status.STATUS.WT_NEW) { // Indicates that the files is new to the working directory.
-                    untracked.push(returnContent(file));
-                } else { // These changes are in the index
-                    added.push(returnContent(file));
-                    if (file.isModified()) { modified.push(returnContent(file)); }
-                    if (file.isDeleted()) { removed.push(returnContent(file)); }
-                    if (file.isTypechange()) { changed.push(returnContent(file)); }
+                var bit = file.statusBit();
+
+                switch(bit) {
+                    case git.Status.STATUS.WT_MODIFIED:
+                        modified.push(returnContent(file));
+                        break;
+                    case git.Status.STATUS.WT_DELETED:
+                        removed.push(returnContent(file));
+                        break;
+                    case git.Status.STATUS.WT_TYPECHANGE:
+                        changed.push(returnContent(file));
+                        break;
+                    case git.Status.STATUS.WT_NEW:
+                        untracked.push(returnContent(file));
+                        break;
+                    default:
+                        added.push(returnContent(file));
+                        break;
                 }
-                
+               
                 //		        if (status.isRenamed()) { words.push("RENAMED"); }
                 //		        if (status.isIgnored()) { words.push("IGNORED"); }
             });

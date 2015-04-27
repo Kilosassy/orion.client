@@ -122,37 +122,28 @@ function postStage(workspaceDir, fileRoot, req, res, next, rest) {
     return repoResult;
   })
   .then(function(repo) {
-    return repo.openIndex();
+      return git.Reference.nameToId(repo, "HEAD");
   })
-  .then(function(indexResult) {
-    index = indexResult;
-    return index.read(1);
+  .then(function(head) {
+    return repo.getCommit(head);
   })
-  .then(function() {
+  .then(function(commit) {
     if (req.body.Path) {
       if (typeof req.body.Path == "string") {
-        return index.removeByPath(filePath);
+        return git.Reset.default(repo, commit, req.body.Path);
       } else {
         req.body.Path.forEach(function(path) {
-          index.removeByPath(path);
+          return git.Reset.default(repo, commit, path)
         })
       }
     } else if (req.body.Reset) {
-      index.removeAll(".")
-      .then(function(result) {
-        return result
-      });
+      return git.Reset.default(repo, commit, ".")
     } else {
-      return index.removeByPath(filePath);
+      return git.Reset.default(repo, commit, filePath)
+
     }
   })
-  .then(function() {
-    return index.write();
-  })
-  .then(function() {
-    return index.writeTree();
-  })
-  .done(function(tree) {
+  .done(function() {
     res.statusCode = 200;
     res.end();
   });
