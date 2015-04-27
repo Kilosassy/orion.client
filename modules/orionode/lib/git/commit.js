@@ -150,39 +150,98 @@ function getFileContent(workspaceDir, fileRoot, req, res, next, rest) {
 
 function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	var repoPath = rest.replace("commit/HEAD/file/", "");
+	var filePath = repoPath.substring(repoPath.indexOf("/")+1);
+	repoPath = repoPath.substring(0, repoPath.indexOf("/"));
 	var fileDir = repoPath;
-	var query = url.parse(req.url, true).query;
-	var pageSize = query.pageSize;
-	var page = query.page;
-	var theRepo;
-    repoPath = api.join(workspaceDir, repoPath);
+	repoPath = api.join(workspaceDir, repoPath);
 
-    return writeError(403, res);
-
+	var theRepo, index, oid, author, commiter, thisCommit, parentCommit;
+	var diffs = [];
 	git.Repository.open(repoPath)
 	.then(function(repo) {
 		theRepo = repo;
+		return repo;
+	})
+	.then(function(repo) {
+		return repo.openIndex();
+	})
+    .then(function(indexResult) {
+    	index = indexResult;
+    	return index.read(1);
 	})
 	.then(function() {
-	  return index.writeTree();
+		return index.writeTree();
 	})
 	.then(function(oidResult) {
-	  oid = oidResult;
-	  return nodegit.Reference.nameToId(theRepo, "HEAD");
+		oid = oidResult;
+		return nodegit.Reference.nameToId(theRepo, "HEAD");
 	})
 	.then(function(head) {
-	  return theRepo.getCommit(head);
+		return theRepo.getCommit(head);
 	})
 	.then(function(parent) {
-		fs.readFile(api.join(repoPath, ".git/config"), {encoding:'utf-8'}, function(err, config){
-			var author = nodegit.Signature.create(req.Body.Email, req.Body.User, 123456789, 60);
-
-	  		return theRepo.createCommit("HEAD", author, author, "message", oid, [parent]);
-		});
-	  
+		if (req.body.AuthorEmail) {
+			author = git.Signature.now(req.body.AuthorName, req.body.AuthorEmail);
+			commiter = git.Signature.now(req.body.CommiterName, req.body.CommiterEmail);
+		} else {
+			author = git.Signature.default(theRepo);	
+			commiter = git.Signature.default(theRepo);
+		}
+		
+		return theRepo.createCommit("HEAD", author, author, "message", oid, [parent]);
+	})
+	.then(function(id) {
+		return git.Commit.lookup(theRepo, id);
+	})
+	.then(function(commit) {
+		thisCommit = commit;
+		return git.Commit.parent(1);
+	})
+	.then(function(parent) {
+		parentCommit = parent;
+		return git.Diff.treeToTree(theRepo, parentCommit.tree(), thisCommit.tree(), null);
+	})
+	.then(function(diff) {
+		var patches = diff.patches();
+	    patches.forEach(function(patch) {
+	        var oldFile = patch.oldFile();
+	        var newFile = patch.newFile();
+	        var newFilePath = newFile.path();
+	        var change = patch.isCopied() ? "COPY" : 
+	        			 patch.isDeleted() ? "DELETE" :
+	        			 patch.isIgnored() ? "IGNORE" :
+	        			 patch.isModified() ? "MODIFY" :
+	        			 patch.isRenamed() ? "RENAME" :
+	     				 patch.isTypeChange() ? "TYPECHANGE" :
+	     				 patch.isUnmotified() ? "UNMODIFY" :
+	     				 patch.isUntracked() ? "UNTRACKED" : "NONE"
+	        
+	        diffs.push({
+				"ChangeType": change,
+				"DiffLocation": "/gitapi/diff/" + parentCommit.sha() + ".." + thisCommit.sha() + "/file/" + path.join(fileDir, newFilePath),
+				"NewPath": newFilePath,
+				"OldPath": oldFile.path(),
+				"Type": "Diff"
+			});
+	    })
 	})
 	.done(function(id) {
         res.statusCode = 200;
+        var resp = JSON.stringify({
+			"AuthorEmail": author.email,
+			"AuthorName": author.name,
+			"Children": [],
+			"CommitterEmail": commiter.email,
+			"CommitterName": commiter.name,
+			"ContentLocation": "/gitapi/commit/" + thisCommit.sha() + "/file/" + fileDir + "?parts=body",
+			"DiffLocation": "/gitapi/diff/" + thisCommit.sha() + "file/" + fileDir,
+			"Diffs": diffs,
+			"Location": "/gitapi/commit/" + thisCommit.sha() + "/file/" + fileDir,
+			"Message": thisCommit.message(),
+			"Name": thisCommit.sha(),
+			"Time": thisCommit.time(),
+			"Type": "Commit"
+		});
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Content-Length', resp.length);
         res.end();
