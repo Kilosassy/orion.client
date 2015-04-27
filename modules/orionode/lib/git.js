@@ -109,7 +109,7 @@ module.exports = function(options) {
 		POST: function(req, res, next, rest) {
 			if (rest.indexOf("clone/") === 0){
 				clone.postInit(workspaceDir, fileRoot, req, res, next, rest);
-			} else if(rest.indexOf("index/file/E") === 0) {
+			} else if(rest.indexOf("index/") === 0) {
 				add.postStage(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("config/") === 0) {
 				config.postConfig(workspaceDir, fileRoot, req, res, next, rest);
