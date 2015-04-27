@@ -41,7 +41,7 @@ module.exports = function(options) {
 	.use(connect.json())
 	.use(redirect())
 	.use(function(req, res, next) {
-		console.log(req.url);
+		console.log(req.method + " " + req.url);
 		next();
 	})
 	.use(resource(workspaceRoot, {

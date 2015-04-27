@@ -37,6 +37,109 @@ function getCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	}
 }
 
+function getCommitRevision(workspaceDir, fileRoot, req, res, next, rest) {
+	var branches = rest.substring(0, rest.indexOf("/"));
+	var repoPath = rest.replace(branches, "").replace("/file/", "");
+	var fileDir = repoPath;
+	repoPath = api.join(workspaceDir, repoPath);
+
+	branches = branches.replace("%252F", "/").split("..");
+
+	var numToReturn = null;
+
+	if (branches[0].indexOf("~") !== -1) {
+		var split = branches[0].split("~")
+		numToReturn = Number(split[1]);
+		branches[0] = split[0];
+	}
+
+	var theRepo, finalCommit, startingCommit;
+
+	git.Repository.open(repoPath)
+	.then(function(repo) {
+		theRepo = repo;
+		return repo.getReferenceCommit(branches[0]);
+	})
+	.then(function(commit) {
+		finalCommit = commit;
+		return theRepo.getReferenceCommit(branches[1]);
+	})
+	.then(function(commit) {
+		startingCommit = commit;
+		var history = commit.history();
+		var commits = [];
+
+		history.on("commit", function(commit) {
+			console.log(commit.sha())
+			console.log(finalCommit.sha())
+			if (commit.sha() === finalCommit.sha()) {
+				console.log("equals ===")
+				return;
+			} else {
+				console.log("not ===")
+			}
+
+			if (commit.sha() == finalCommit.sha()) {
+				console.log("equals ==")
+				return;
+			} else {
+				console.log("not ==")
+			}
+ 
+			if ((!numToReturn && commit === finalCommit) || (numToReturn && commits.length === numToReturn)) {
+				var referenceName = branches[0];
+				var resp = JSON.stringify({
+					"Children": commits,
+					"RepositoryPath": "",
+					"toRef": {
+						"CloneLocation": "/gitapi/clone/file/" + fileDir,
+						"CommitLocation": "/gitapi/commit/" + referenceName + "/file/" + fileDir,
+						"Current": true,
+						"HeadLocation": "/gitapi/commit/HEAD/file/" + fileDir,
+						"Location": "/gitapi/branch/" + referenceName + "/file/" + fileDir,
+						"Name": referenceName,
+						"Type": "Branch"
+					}
+				});
+				res.statusCode = 200;
+				res.setHeader('Content-Type', 'application/json');
+				res.setHeader('Content-Length', resp.length);
+				res.end(resp);
+				return;
+			} else {
+				commits.push({
+					"AuthorEmail": commit.author().name(), 
+					"AuthorName": commit.author().email(),
+					"Children":[],
+					"CommitterEmail": commit.committer().email(),
+					"CommitterName": commit.committer().name(),
+					"ContentLocation": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir + "?parts=body",
+					"DiffLocation": "/gitapi/diff/" + commit.sha() + "/file/" + fileDir,
+					"Diffs":[],
+					"Location": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir,
+					"Message": commit.message(),
+					"Name": commit.sha(),
+					"Time": commit.timeMs(),
+					"Type": "Commit"
+				});
+			}
+		})
+
+		history.on("end", function(commits) {
+			if (commits.length < numToReturn) {
+				writeError(400, res);
+				return;
+			} else {
+				console.log("ended")
+				console.log(commits.length)
+			}
+		})
+
+		history.start();
+	})
+
+}
+
 function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
 	var repoPath = rest.replace("HEAD/file/", "");
 	var fileDir = repoPath;
