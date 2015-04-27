@@ -61,12 +61,15 @@ function getFileIndex(workspaceDir, fileRoot, req, res, next, rest) {
 function putStage(workspaceDir, fileRoot, req, res, next, rest) {
   var repo;
   var index;
+// http://localhost:8081/gitapi/index/file/test
+// http://localhost:8081/gitapi/index/file/test/test.md
 
   var repoPath = rest.replace("index/file/", "");
   var filePath = repoPath.substring(repoPath.indexOf("/")+1);
-  repoPath = repoPath.substring(0, repoPath.indexOf("/"));
+  repoPath = repoPath.indexOf("/") === -1 ? repoPath : repoPath.substring(0, repoPath.indexOf("/"));
   var fileDir = repoPath;
   repoPath = api.join(workspaceDir, repoPath);
+
 
   git.Repository.open(repoPath)
   .then(function(repoResult) {
@@ -109,7 +112,7 @@ function postStage(workspaceDir, fileRoot, req, res, next, rest) {
 
   var repoPath = rest.replace("index/file/", "");
   var filePath = repoPath.substring(repoPath.indexOf("/")+1);
-  repoPath = repoPath.substring(0, repoPath.indexOf("/"));
+  repoPath = repoPath.indexOf("/") === -1 ? repoPath : repoPath.substring(0, repoPath.indexOf("/"));
   var fileDir = repoPath;
   repoPath = api.join(workspaceDir, repoPath);
 
@@ -127,9 +130,13 @@ function postStage(workspaceDir, fileRoot, req, res, next, rest) {
   })
   .then(function() {
     if (req.body.Path) {
-      req.body.Path.forEach(function(path) {
-        index.removeByPath(path);
-      })
+      if (typeof req.body.Path == "string") {
+        return index.removeByPath(filePath);
+      } else {
+        req.body.Path.forEach(function(path) {
+          index.removeByPath(path);
+        })
+      }
     } else if (req.body.Reset) {
       index.removeAll(".")
       .then(function(result) {
