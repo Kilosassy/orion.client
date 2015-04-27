@@ -177,6 +177,7 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 
 	var theRepo, index, oid, author, committer, thisCommit, parentCommit;
 	var diffs = [];
+	var tree1, tree2;
 
 	git.Repository.open(repoPath)
 	.then(function(repo) {
@@ -211,16 +212,22 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 			committer = git.Signature.default(theRepo);
 		}
 		
-		return theRepo.createCommit("HEAD", author, commit, "message", oid, [parent]);
+		return theRepo.createCommit("HEAD", author, committer, req.body.Message, oid, [parent]);
 	})
 	.then(function(id) {
 		return git.Commit.lookup(theRepo, id);
 	})
 	.then(function(commit) {
 		thisCommit = commit;
+		return thisCommit.getTree();
 	})
-	.then(function(parent) {
-		return git.Diff.treeToTree(theRepo, parentCommit.getTree(), thisCommit.getTree(), null);
+	.then(function(tree){
+		tree2 = tree;
+		return parentCommit.getTree();
+	})
+	.then(function(tree) {
+		tree1 = tree;
+		return git.Diff.treeToTree(theRepo, tree1, tree2, null);
 	})
 	.then(function(diff) {
 		var patches = diff.patches();
@@ -246,14 +253,18 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 			});
 	    })
 	})
-	.done(function(id) {
+	.catch(function(err) {
+		console.log(err);
+		writeError(403, res);
+	})
+	.done(function() {
         res.statusCode = 200;
         var resp = JSON.stringify({
-			"AuthorEmail": author.email,
-			"AuthorName": author.name,
+			"AuthorEmail": author.email(),
+			"AuthorName": author.name(),
 			"Children": [],
-			"CommitterEmail": commiter.email,
-			"CommitterName": commiter.name,
+			"CommitterEmail": committer.email(),
+			"CommitterName": committer.name(),
 			"ContentLocation": "/gitapi/commit/" + thisCommit.sha() + "/file/" + fileDir + "?parts=body",
 			"DiffLocation": "/gitapi/diff/" + thisCommit.sha() + "file/" + fileDir,
 			"Diffs": diffs,
@@ -265,8 +276,8 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 		});
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Content-Length', resp.length);
-        res.end();
-	});
+        res.end(resp);
+	})
 }
 
 module.exports = {
