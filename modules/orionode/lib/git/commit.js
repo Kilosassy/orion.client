@@ -16,8 +16,29 @@ var Clone = git.Clone;
 var fs = require('fs');
 var url = require('url');
 
+function getCommit(workspaceDir, fileRoot, req, res, next, rest) {
+	rest = rest.replace("commit/", "");
+	var query = url.parse(req.url, true).query;
+
+	if (rest.indexOf("/HEAD/") === 0) { //Need to figure out how to parse between getting file from head!
+		getCommitLog(workspaceDir, fileRoot, req, res, next, rest);
+	} else  {
+		var commit = rest.substring(0, rest.indexOf("/"));
+
+		if (commit.indexOf("..") === -1) {
+			if (query.parts) {
+				getFileContent(workspaceDir, fileRoot, req, res, next, rest);
+			} else {
+				getCommitMetadata(workspaceDir, fileRoot, req, res, next, rest);
+			}
+		} else {
+			getCommitRevision(workspaceDir, fileRoot, req, res, next, rest);
+		}
+	}
+}
+
 function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
-	var repoPath = rest.replace("commit/HEAD/file/", "");
+	var repoPath = rest.replace("HEAD/file/", "");
 	var fileDir = repoPath;
 	var query = url.parse(req.url, true).query;
 	var pageSize = query.pageSize;
@@ -89,7 +110,7 @@ function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
 }
 
 function getCommitMetadata(workspaceDir, fileRoot, req, res, next, rest) {
-	var repoPath = rest.replace("commit/", "");
+	var repoPath = rest;
 	var commitID = repoPath.substring(0, repoPath.indexOf("/"));
 	repoPath = repoPath.substring(repoPath.indexOf("/")+1).replace("file/", "");
 	var fileDir = repoPath;
@@ -126,7 +147,7 @@ function getCommitMetadata(workspaceDir, fileRoot, req, res, next, rest) {
 }
 
 function getFileContent(workspaceDir, fileRoot, req, res, next, rest) {
-	var repoPath = rest.replace("commit/", "");
+	var repoPath = rest;
 	var commitID = repoPath.substring(0, repoPath.indexOf("/"));
 	repoPath = repoPath.substring(repoPath.indexOf("/")+1).replace("file/", "");
 	filePath = repoPath.substring(repoPath.indexOf("/")+1).replace("Folder/", "");
@@ -281,8 +302,6 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 }
 
 module.exports = {
-	getCommitLog: getCommitLog,
-	getCommitMetadata: getCommitMetadata,
-	getFileContent: getFileContent,
+	getCommit: getCommit,
     postCommit: postCommit
 };

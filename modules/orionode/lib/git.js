@@ -81,16 +81,8 @@ module.exports = function(options) {
 				stash.getStash(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("blame/") === 0) {
 				blame.getBlame(workspaceDir, fileRoot, req, res, next, rest);
-			} else if (rest.indexOf("commit/HEAD/file/") === 0) {
-				if (query.page) {
-					commit.getCommitLog(workspaceDir, fileRoot, req, res, next, rest);
-				} 
 			} else if (rest.indexOf("commit/") === 0) {
-				if (query.parts) {
-					commit.getFileContent(workspaceDir, fileRoot, req, res, next, rest);
-				} else {
-					commit.getCommitMetadata(workspaceDir, fileRoot, req, res, next, rest);
-				}
+				commit.getCommit(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("diff/Default/file/") === 0) {
 				var diffOnly = query.parts === 'diff';
 				var uriOnly = query.parts === 'uris';
