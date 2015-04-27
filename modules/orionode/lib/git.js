@@ -40,6 +40,10 @@ module.exports = function(options) {
 	return connect()
 	.use(connect.json())
 	.use(redirect())
+	.use(function(req, res, next) {
+		console.log(req.url);
+		next();
+	})
 	.use(resource(workspaceRoot, {
 		GET: function(req, res, next, rest) {
 			var query = url.parse(req.url, true).query;

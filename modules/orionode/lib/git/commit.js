@@ -19,6 +19,7 @@ var url = require('url');
 var val = undefined;
 
 function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
+	console.log("get commit log called")
 	var repoPath = rest.replace("commit/HEAD/file/", "");
 	var fileDir = repoPath;
 	var query = url.parse(req.url, true).query;
@@ -83,6 +84,7 @@ function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
 }
 
 function getCommitMetadata(workspaceDir, fileRoot, req, res, next, rest) {
+	console.log("metadata called")
 	var repoPath = rest.replace("commit/", "");
 	var commitID = repoPath.substring(0, repoPath.indexOf("/"));
 	repoPath = repoPath.substring(repoPath.indexOf("/")+1).replace("file/", "");
@@ -120,6 +122,7 @@ function getCommitMetadata(workspaceDir, fileRoot, req, res, next, rest) {
 }
 
 function getFileContent(workspaceDir, fileRoot, req, res, next, rest) {
+	console.log("getFileContent");
 	var repoPath = rest.replace("commit/", "");
 	var commitID = repoPath.substring(0, repoPath.indexOf("/"));
 	repoPath = repoPath.substring(repoPath.indexOf("/")+1).replace("file/", "");
@@ -149,14 +152,16 @@ function getFileContent(workspaceDir, fileRoot, req, res, next, rest) {
 }
 
 function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
+	console.log("hello")
 	var repoPath = rest.replace("commit/HEAD/file/", "");
 	var filePath = repoPath.substring(repoPath.indexOf("/")+1);
 	repoPath = repoPath.indexOf("/") === -1 ? repoPath : repoPath.substring(0, repoPath.indexOf("/"));
 	var fileDir = repoPath;
 	repoPath = api.join(workspaceDir, repoPath);
 
-	var theRepo, index, oid, author, commiter, thisCommit, parentCommit;
+	var theRepo, index, oid, author, committer, thisCommit, parentCommit;
 	var diffs = [];
+
 	git.Repository.open(repoPath)
 	.then(function(repo) {
 		theRepo = repo;
@@ -184,10 +189,10 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 
 		if (req.body.AuthorEmail) {
 			author = git.Signature.now(req.body.AuthorName, req.body.AuthorEmail);
-			commiter = git.Signature.now(req.body.CommitterName, req.body.CommitterEmail);
+			committer = git.Signature.now(req.body.CommitterName, req.body.CommitterEmail);
 		} else {
 			author = git.Signature.default(theRepo);	
-			commiter = git.Signature.default(theRepo);
+			committer = git.Signature.default(theRepo);
 		}
 		
 		return theRepo.createCommit("HEAD", author, commit, "message", oid, [parent]);
@@ -246,6 +251,8 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
         res.setHeader('Content-Length', resp.length);
         res.end();
 	});
+
+	console.log("end")
 }
 
 
