@@ -16,8 +16,6 @@ var Clone = git.Clone;
 var fs = require('fs');
 var url = require('url');
 
-var val = undefined;
-
 function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
 	var repoPath = rest.replace("commit/HEAD/file/", "");
 	var fileDir = repoPath;
@@ -269,25 +267,6 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
         res.setHeader('Content-Length', resp.length);
         res.end();
 	});
-}
-
-
-
-function findInPath(config, prefix, key) {
-	if (typeof config !== "object") {
-		if (prefix === key) {
-			console.log(config);
-			val = config;
-		}
-	} else {
-		for (var property in config) {
-		    if (config.hasOwnProperty(property)) {
-		    	// ini gives reply as 'branch "origin"', remove the ", add period
-		    	var path = property.split('"').join("").replace(" ", ".");
-		        findInPath(config[property], prefix === "" ? path : prefix + "." + path, key);
-		    }
-		}
-	}
 }
 
 module.exports = {

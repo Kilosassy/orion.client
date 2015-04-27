@@ -102,7 +102,6 @@ function postInit(workspaceDir, fileRoot, req, res, next, rest) {
 	if (req.body.GitUrl) {
 		postClone(workspaceDir, fileRoot, req, res, next, rest);
 	} else {
-		console.log("called")
 		var initDir = workspaceDir + '/' + req.body.Name;
 		var theRepo, index, author, committer;
 
@@ -121,19 +120,21 @@ function postInit(workspaceDir, fileRoot, req, res, next, rest) {
 			})
 			.then(function(idx) {
 				index = idx;
+				index.read(1);
 			})
 			.then(function() {
 				return index.writeTree();
 			})
 			.then(function(oid) {
-				console.log("makeStuff")
 				author = git.Signature.default(theRepo);	
 				committer = git.Signature.default(theRepo);
+
 				// Since we're creating an inital commit, it has no parents. Note that unlike
 				// normal we don't get the head either, because there isn't one yet.
-				return repository.createCommit("HEAD", author, committer, "Initial commit", oid, []);
+				return theRepo.createCommit("HEAD", author, committer, "Initial commit", oid, []);
 			})
-			.then(function() {
+			.then(function(id) {
+				console.log(id);
 				var response = {
 			       	"Location": "/gitapi/clone/file/" + req.body.Name
 			    }
@@ -143,7 +144,11 @@ function postInit(workspaceDir, fileRoot, req, res, next, rest) {
 				res.setHeader('Content-Length', resp.length);
 				res.end(resp);
 
-		    });
+		    })
+		    .catch(function(err){
+		    	console.log(err);
+		    	writeError(403, res);
+		    })
 
 	    });
 	}
