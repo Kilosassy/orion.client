@@ -127,11 +127,8 @@ function putStage(workspaceDir, fileRoot, req, res, next, rest) {
   })
   .then(function() {
     if (req.body.Path) {
-      async.each(req.body.Path, function(path, cb) {
-        index.addByPath(path)
-        .then(cb)
-      }, function(err) {
-        return;
+      req.body.Path.forEach(function(path) {
+        index.addByPath(path);
       })
     } else {
       return index.addByPath(filePath);
