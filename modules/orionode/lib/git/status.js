@@ -17,11 +17,14 @@ var path = require("path");
 function getStatus(workspaceDir, fileRoot, req, res, next, rest) {
     var status = [];
     var repoPath = rest.replace("status/file/", "");
+    var fileDir = repoPath;
     repoPath = api.join(workspaceDir, repoPath);
     git.Repository.open(repoPath)
         .then(function(repo) {
             var statuses = repo.getStatusExt({
-                flags: git.Status.OPT.INCLUDE_UNTRACKED
+                flags: 
+                    git.Status.OPT.INCLUDE_UNTRACKED | 
+                    git.Status.OPT.RECURSE_UNTRACKED_DIRS
             });
 
             var added = [],
@@ -33,7 +36,7 @@ function getStatus(workspaceDir, fileRoot, req, res, next, rest) {
                 untracked = [];
 
             function returnContent(file) {
-            	var orionFilePath = api.join(rest.replace("status/file/", ""), file.path().replace(workspaceDir,""));
+            	var orionFilePath = fileDir + "/" + file.path();
                 return {
                     "Git": {
                         "CommitLocation": "/gitapi/commit/HEAD/file/" + orionFilePath,

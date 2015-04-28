@@ -30,25 +30,27 @@ function getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next
                 flags: 
                     git.Diff.OPTION.SHOW_UNTRACKED_CONTENT |
                     git.Diff.OPTION.INCLUDE_UNTRACKED | 
-                    git.Diff.OPTION.RECURSE_UNTRACKED_DIRS,
+                    git.Diff.OPTION.RECURSE_UNTRACKED_DIRS |
+                    git.Diff.OPTION.IGNORE_SUBMODULES,
                 contextLines: 0
             });
     })
     .then(function(diff) {
         processDiff(diff, filePath, fileDir, res, diffOnly, uriOnly);
     })
+    .catch(function(err) {
+        console.log(err);
+        writeError(404, res);
+    })
 }
 
-/* Currently does not display untracked files correctly */
 function processDiff(diff, filePath, fileDir, res, diffOnly, uriOnly) {
     var patches = diff.patches();
     patches.forEach(function(patch) {
         var oldFile = patch.oldFile();
         var newFile = patch.newFile();
         var newFilePath = newFile.path();
-
         if (!filePath || newFilePath === filePath) {
-
             URI = ""
             diffContent = ""
 
@@ -132,7 +134,8 @@ function processDiff(diff, filePath, fileDir, res, diffOnly, uriOnly) {
             res.setHeader('Content-Length', body.length);
             return res.end(body);
         }
-    })
+    });
+    // writeError(404, res);
 }
 
 function getDiffBetweenIndexAndHead(workspaceDir, fileRoot, req, res, next, rest, diffOnly, uriOnly) {
