@@ -44,6 +44,10 @@ function getFileIndex(workspaceDir, fileRoot, req, res, next, rest) {
           res.write(blob.toString());
           res.statusCode = 200;
           res.end();
+        })
+        .catch(function(err) {
+          console.log(err);
+          writeError(404, res);
         });
 }
 

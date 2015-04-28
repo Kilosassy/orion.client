@@ -28,6 +28,7 @@ function getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next
     .then(function(repo) {
         return git.Diff.indexToWorkdir(repo, null, {
                 flags: 
+                    git.Diff.OPTION.SHOW_UNTRACKED_CONTENT |
                     git.Diff.OPTION.INCLUDE_UNTRACKED | 
                     git.Diff.OPTION.RECURSE_UNTRACKED_DIRS,
                 contextLines: 0
