@@ -73,8 +73,7 @@ module.exports = function(options) {
 				config.getAConfig(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("index/file/") === 0) {
 				// I think this is working, but I'm not 100%, leave it out for now.
-				//add.getFileIndex(workspaceDir, fileRoot, req, res, next, rest);
-				res.redirect(rest.replace("index", ""));
+				add.getFileIndex(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("tag/file/") === 0) {
 				tags.getTags(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("stash/file") === 0) {

@@ -15,22 +15,19 @@ var async = require('async');
 var path = require("path");
 
 function getFileIndex(workspaceDir, fileRoot, req, res, next, rest) {
-        console.log("rest: " + rest);
         var repo;
         var index;
-
-        var file = rest.substring(rest.indexOf("index/file/") + "index/file/".length);
-        var end_of_dir = file.substring(0, file.lastIndexOf("/"));
-        var dir = path.join(workspaceDir, end_of_dir);
-        var filename = path.join(path.join(workspaceDir, end_of_dir), file);
-        console.log("eod: " + end_of_dir);
-        console.log(dir + "/.git");
-
         var result = "";
-        git.Repository.open(dir + "/.git")
+
+        var repoPath = rest.replace("index/file/", "");
+        var file = repoPath.substring(repoPath.indexOf("/")+1);
+        repoPath = repoPath.substring(0, repoPath.indexOf("/"));
+        repoPath = api.join(workspaceDir, repoPath);
+
+        git.Repository.open(repoPath)
         .then(function(repoResult) {
-            repo = repoResult;
-          return repoResult;
+          repo = repoResult;
+          return repo;
         })
         .then(function(repo) {
           return repo.openIndex();
@@ -40,18 +37,11 @@ function getFileIndex(workspaceDir, fileRoot, req, res, next, rest) {
           return index.read(1);
         })
         .then(function() {
-          // this file is in the root of the directory and doesn't need a full path
-          var tmp = index.getByPath(filename);
-          result += tmp;
-          return tmp;
+          var indexEntry = index.getByPath(file);
+          return git.Blob.lookup(repo, indexEntry.id)
         })
-        .then(function() {
-          // this file is in a subdirectory and can use a relative path
-          var tmp = index.addByPath(path.join(dir, filename));
-          result += tmp;
-        })
-        .done(function(tree) {
-          res.write(result);
+        .then(function(blob) {
+          res.write(blob.toString());
           res.statusCode = 200;
           res.end();
         });
@@ -61,8 +51,6 @@ function getFileIndex(workspaceDir, fileRoot, req, res, next, rest) {
 function putStage(workspaceDir, fileRoot, req, res, next, rest) {
   var repo;
   var index;
-// http://localhost:8081/gitapi/index/file/test
-// http://localhost:8081/gitapi/index/file/test/test.md
 
   var repoPath = rest.replace("index/file/", "");
   var filePath = repoPath.substring(repoPath.indexOf("/")+1);

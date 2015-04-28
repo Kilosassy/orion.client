@@ -27,7 +27,10 @@ function getDiffBetweenWorkingTreeAndHead(workspaceDir, fileRoot, req, res, next
     git.Repository.open(repoPath)
     .then(function(repo) {
         return git.Diff.indexToWorkdir(repo, null, {
-                flags: git.Diff.OPTION.UPDATE_INDEX | git.Diff.OPTION.INCLUDE_UNTRACKED | git.Diff.OPTION.RECURSE_UNTRACKED_DIRS
+                flags: 
+                    git.Diff.OPTION.INCLUDE_UNTRACKED | 
+                    git.Diff.OPTION.RECURSE_UNTRACKED_DIRS,
+                contextLines: 0
             });
     })
     .then(function(diff) {
@@ -51,7 +54,8 @@ function processDiff(diff, filePath, fileDir, res, diffOnly, uriOnly) {
             if (!diffOnly) {
                 URI += JSON.stringify({
                     "Base": "/gitapi/index/file/" + fileDir + "/" + newFilePath,
-                    "Location": "/gitapi/diff/Default/file" + fileDir + "/" + newFilePath,
+                    "CloneLocation": "/gitapi/clone/file/" + fileDir + "/",
+                    "Location": "/gitapi/diff/Default/file/" + fileDir + "/" + newFilePath,
                     "New": "/file/" + fileDir + "/" + newFilePath,
                     "Old": "/gitapi/index/file/" + fileDir + "/" + newFilePath,
                     "Type": "Diff"
@@ -86,6 +90,12 @@ function processDiff(diff, filePath, fileDir, res, diffOnly, uriOnly) {
                                 break;
                             case git.Diff.LINE.DELETION:
                                 prefix = "-";
+                                break;
+                            case git.Diff.LINE.DEL_EOFNL:
+                                prefix = "\\ No newline at end of file"
+                                break;
+                            case git.Diff.LINE.ADD_EOFNL:
+                                prefix = "\\ No newline at end of file"
                                 break;
                         }
 
