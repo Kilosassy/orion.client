@@ -20,11 +20,15 @@ function getCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	rest = rest.replace("commit/", "");
 	var query = url.parse(req.url, true).query;
 
-	if (query.parts === "log" || (query.page && query.pageSize)) { //Need to figure out how to parse between getting file from head!
-		getCommitLog(workspaceDir, fileRoot, req, res, next, rest);
-	} else  {
-		var commit = rest.substring(0, rest.indexOf("/"));
+	var commit = rest.substring(0, rest.indexOf("/"));
 
+	if (query.parts === "log" || (query.page && query.pageSize)) { //Need to figure out how to parse between getting file from head!
+		if (commit.indexOf("..") === -1) {
+			getCommitLog(workspaceDir, fileRoot, req, res, next, rest);
+		} else {
+			getCommitRevision(workspaceDir, fileRoot, req, res, next, rest);
+		}
+	} else  {
 		if (commit.indexOf("..") === -1) {
 			if (query.parts) {
 				getFileContent(workspaceDir, fileRoot, req, res, next, rest);
@@ -46,6 +50,23 @@ function getCommitRevision(workspaceDir, fileRoot, req, res, next, rest) {
 	branches = branches.replace("%252F", "/").split("..");
 
 	var numToReturn = null;
+
+	var query = url.parse(req.url, true).query;
+	var pageSize = Number(query.pageSize);
+	var page = Number(query.page);
+	var nextLocation, prevLocation;
+
+	if (page && page > 1) {
+		prevLocation = url.parse(req.url, true);
+		prevLocation.query.page = page - 1 + "";
+		prevLocation.search = null;
+		prevLocation = url.format(prevLocation);
+	}
+
+	nextLocation = url.parse(req.url, true);
+	nextLocation.query.page = page + 1 + "";
+	nextLocation.search = null; //So that query object will be used for format
+	nextLocation = url.format(nextLocation);
 
 	if (branches[0].indexOf("~") !== -1) {
 		var split = branches[0].split("~")
@@ -83,7 +104,7 @@ function getCommitRevision(workspaceDir, fileRoot, req, res, next, rest) {
 
 		function writeResponse() {
 			var referenceName = branches[0];
-			var resp = JSON.stringify({
+			var resp = {
 				"Children": commits,
 				"RepositoryPath": "",
 				"toRef": {
@@ -95,12 +116,25 @@ function getCommitRevision(workspaceDir, fileRoot, req, res, next, rest) {
 					"Name": referenceName,
 					"Type": "Branch"
 				}
-			});
+			};
+
+			if (page) {
+				resp['NextLocation'] = nextLocation
+			}
+
+			if (page && prevLocation) {
+				resp['PreviousLocation'] = prevLocation;
+			}
+
+			resp = JSON.stringify(resp);
+			
 			res.statusCode = 200;
 			res.setHeader('Content-Type', 'application/json');
 			res.setHeader('Content-Length', resp.length);
 			res.end(resp);
 		}
+
+		var count = 0;
 
 	    function walk() {
 			return revWalk.next()
@@ -117,23 +151,31 @@ function getCommitRevision(workspaceDir, fileRoot, req, res, next, rest) {
 
 				return theRepo.getCommit(oid)
 				.then(function(commit) {
-					commits.push({
-						"AuthorEmail": commit.author().name(), 
-						"AuthorName": commit.author().email(),
-						"Children":[],
-						"CommitterEmail": commit.committer().email(),
-						"CommitterName": commit.committer().name(),
-						"ContentLocation": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir + "?parts=body",
-						"DiffLocation": "/gitapi/diff/" + commit.sha() + "/file/" + fileDir,
-						"Diffs":[],
-						"Location": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir,
-						"Message": commit.message(),
-						"Name": commit.sha(),
-						"Time": commit.timeMs(),
-						"Type": "Commit"
-					});
+
+					if (!page || count++ >= (page-1)*pageSize) {
+						commits.push({
+							"AuthorEmail": commit.author().name(), 
+							"AuthorName": commit.author().email(),
+							"Children":[],
+							"CommitterEmail": commit.committer().email(),
+							"CommitterName": commit.committer().name(),
+							"ContentLocation": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir + "?parts=body",
+							"DiffLocation": "/gitapi/diff/" + commit.sha() + "/file/" + fileDir,
+							"Diffs":[],
+							"Location": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir,
+							"Message": commit.message(),
+							"Name": commit.sha(),
+							"Time": commit.timeMs(),
+							"Type": "Commit"
+						});
+					}
 
 					if (numToReturn && commits.length === numToReturn) {
+						writeResponse();
+						return;
+					}
+
+					if (pageSize && commits.length === pageSize) {
 						writeResponse();
 						return;
 					}
@@ -156,8 +198,21 @@ function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
 	reference = reference.split("%252F").join("/");
 
 	var query = url.parse(req.url, true).query;
-	var pageSize = query.pageSize;
-	var page = query.page;
+	var pageSize = Number(query.pageSize);
+	var page = Number(query.page);
+	var nextLocation, prevLocation;
+
+	if (page && page > 1) {
+		prevLocation = url.parse(req.url, true);
+		prevLocation.query.page = page - 1 + "";
+		prevLocation.search = null;
+		prevLocation = url.format(prevLocation);
+	}
+
+	nextLocation = url.parse(req.url, true);
+	nextLocation.query.page = page + 1 + "";
+	nextLocation.search = null; //So that query object will be used for format
+	nextLocation = url.format(nextLocation);
 
     var theRepo;
 
@@ -172,7 +227,6 @@ function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
 		var count = 0;
 		history.on("commit", function(commit) {
 			if (++count > pageSize*page) {
-				// var referenceName = reference;
 				sendResponse();
 			} else if (count >= (page-1)*pageSize) {
 				commits.push({
@@ -199,9 +253,10 @@ function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
 		history.start();
 
 		function sendResponse() {
-			var resp = JSON.stringify({
+			var resp = {
 				"Children": commits,
 				"RepositoryPath": "",
+				"NextLocation": nextLocation,
 				"toRef": {
 					"CloneLocation": "/gitapi/clone/file/" + fileDir,
 					"CommitLocation": "/gitapi/commit/" + reference + "/file/" + fileDir,
@@ -211,7 +266,14 @@ function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
 					"Name": reference,
 					"Type": "Branch"
 				}
-			});
+			};
+
+			if (prevLocation) {
+				resp["PreviousLocation"] = prevLocation
+			}
+
+			resp = JSON.stringify(resp);
+			
 			res.statusCode = 200;
 			res.setHeader('Content-Type', 'application/json');
 			res.setHeader('Content-Length', resp.length);
@@ -293,12 +355,17 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 		var branch = repoPath.substring(0, repoPath.indexOf("/"));
 		var location = "/gitapi/commit/" + branch + ".." + req.body.New + repoPath.replace(branch, "");
 		res.statusCode = 200;
-        var resp = JSON.stringify({
-			"Location": location
-		});
+  //       var resp = JSON.stringify({
+		// 	"Location": location
+		// });
         res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Content-Length', resp.length);
-        res.end(resp);
+        // res.setHeader('Content-Length', resp.length);
+        res.setHeader('Location', url.format({
+        	pathname: location,
+        	query: url.parse(req.url, true).query
+        }))
+        // res.end(resp);
+        res.end();
         return;
 	}
 
