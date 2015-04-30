@@ -17,15 +17,10 @@ var path = require("path");
 function getStatus(workspaceDir, fileRoot, req, res, next, rest) {
     var status = [];
     var repoPath = rest.replace("status/file/", "");
-    var fileDir = repoPath;
     repoPath = api.join(workspaceDir, repoPath);
     git.Repository.open(repoPath)
         .then(function(repo) {
-            var statuses = repo.getStatusExt({
-                flags: 
-                    git.Status.OPT.INCLUDE_UNTRACKED | 
-                    git.Status.OPT.RECURSE_UNTRACKED_DIRS
-            });
+            var statuses = repo.getStatusExt();
 
             var added = [],
                 changed = [], // no idea
@@ -36,7 +31,7 @@ function getStatus(workspaceDir, fileRoot, req, res, next, rest) {
                 untracked = [];
 
             function returnContent(file) {
-            	var orionFilePath = fileDir + "/" + file.path();
+            	var orionFilePath = api.join(rest.replace("status/file/", ""), file.path().replace(workspaceDir,""));
                 return {
                     "Git": {
                         "CommitLocation": "/gitapi/commit/HEAD/file/" + orionFilePath,
@@ -46,30 +41,14 @@ function getStatus(workspaceDir, fileRoot, req, res, next, rest) {
                     "Location": "/file/" + orionFilePath,
                     "Name": file.path(),
                     "Path": file.path()
-                }
+                };
             }
 
             statuses.forEach(function(file) {
-                var bit = file.statusBit();
-
-                switch(bit) {
-                    case git.Status.STATUS.WT_MODIFIED:
-                        modified.push(returnContent(file));
-                        break;
-                    case git.Status.STATUS.WT_DELETED:
-                        removed.push(returnContent(file));
-                        break;
-                    case git.Status.STATUS.WT_TYPECHANGE:
-                        changed.push(returnContent(file));
-                        break;
-                    case git.Status.STATUS.WT_NEW:
-                        untracked.push(returnContent(file));
-                        break;
-                    default:
-                        added.push(returnContent(file));
-                        break;
-                }
-               
+                if (file.isNew()) { untracked.push(returnContent(file)); }
+                if (file.isModified()) { modified.push(returnContent(file)); }
+                if (file.isDeleted()) { removed.push(returnContent(file)); }
+                if (file.isTypechange()) { changed.push(returnContent(file)); }
                 //		        if (status.isRenamed()) { words.push("RENAMED"); }
                 //		        if (status.isIgnored()) { words.push("IGNORED"); }
             });
@@ -89,7 +68,6 @@ function getStatus(workspaceDir, fileRoot, req, res, next, rest) {
                 "Type": "Status",
                 "Untracked": untracked   
             });
-
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
             res.setHeader('Content-Length', resp.length);
