@@ -12,6 +12,8 @@
 var assert = require('assert');
 var path = require('path');
 var testData = require('./support/test_data');
+var git = require('nodegit');
+var fs = require('fs');
 
 var CONTEXT_PATH = '/orionn';
 var PREFIX = CONTEXT_PATH + '/workspace', PREFIX_FILE = CONTEXT_PATH + '/file';
@@ -35,6 +37,9 @@ var app = testData.createApp()
 			workspaceDir: WORKSPACE
 		}));
 
+var TEST_REPO_NAME = 'test';
+var repoPath = path.join(WORKSPACE, TEST_REPO_NAME);
+
 function byName(a, b) {
 	return String.prototype.localeCompare(a.Name, b.Name);
 }
@@ -57,27 +62,42 @@ describe('Git API', function(done) {
 		testData.setUp(WORKSPACE, done);
 	});
 
-	/**
-	 * http://wiki.eclipse.org/Orion/Server_API/Workspace_API#Actions_on_workspaces
-	 */
+	// after(function(done) {
+	// 	fs.rmdir(repoPath, done);
+	// })
+
 	this.timeout(0);
-	describe('clone workspace', function(done) {
-		it('list gets the workspace info', function(done) {
+	describe('init a repository', function() {
+		it('creates a new directory and repository', function(finished) {
+
 			app.request()
-			.get("/orionn/gitapi/clone/workspace")
-			.expect(200)
-			.end(function(e, res) {
-				console.log("response:: " + res );
-				done();
-				/*assert.ifError(e);
-				assert.ok(Array.isArray(res.body.Workspaces));
-				// In Orionode, we have just a single workspace.
-				assert.equal(res.body.Workspaces.length, 1);
-				assert.ok(res.body.Workspaces[0].Id);
-				assert.ok(res.body.Workspaces[0].Location);
-				assert.equal(res.body.Workspaces[0].Name, DEFAULT_WORKSPACE_NAME);
-				done();*/
-			});
+			.post(CONTEXT_PATH + "/gitapi/clone/")
+			.send({
+				"Name":  TEST_REPO_NAME,
+				"Location": PREFIX
+			})
+			.expect(201)
+			.end(function(err, res) {
+				assert.ifError(err);
+				assert.equal(res.body.Location, "/gitapi/clone/file/" + TEST_REPO_NAME)
+				// Verify the directory was made
+				var stat = fs.statSync(repoPath);
+				assert(stat.isDirectory());
+				//Check we have a repo and an initial commit
+				git.Repository.open(repoPath)
+				.then(function(repo) {
+					return repo.getReferenceCommit("HEAD");
+				})
+				.then(function(commit) {
+					assert(commit.message(), "Initial commit")
+				})
+				.catch(function(err) {
+					assert.ifError(err);
+				})
+				.done(function() {
+					finished();
+				})
+			})
 		});
 	});
 });
