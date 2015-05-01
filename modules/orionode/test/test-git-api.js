@@ -14,6 +14,8 @@ var path = require('path');
 var testData = require('./support/test_data');
 var git = require('nodegit');
 var fs = require('fs');
+var rmdir = require('rimraf');
+
 
 var CONTEXT_PATH = '/orionn';
 var PREFIX = CONTEXT_PATH + '/workspace', PREFIX_FILE = CONTEXT_PATH + '/file';
@@ -62,9 +64,9 @@ describe('Git API', function(done) {
 		testData.setUp(WORKSPACE, done);
 	});
 
-	// after(function(done) {
-	// 	fs.rmdir(repoPath, done);
-	// })
+	after(function(done) {
+		rmdir(repoPath, done);
+	})
 
 	this.timeout(0);
 	describe('init a repository', function() {
