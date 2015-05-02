@@ -134,7 +134,6 @@ function postInit(workspaceDir, fileRoot, req, res, next, rest) {
 				return theRepo.createCommit("HEAD", author, committer, "Initial commit", oid, []);
 			})
 			.then(function(id) {
-				console.log(id);
 				var response = {
 			       	"Location": "/gitapi/clone/file/" + req.body.Name
 			    }

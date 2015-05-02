@@ -62,7 +62,6 @@ function putStage(workspaceDir, fileRoot, req, res, next, rest) {
   var fileDir = repoPath;
   repoPath = api.join(workspaceDir, repoPath);
 
-
   git.Repository.open(repoPath)
   .then(function(repoResult) {
     repo = repoResult;

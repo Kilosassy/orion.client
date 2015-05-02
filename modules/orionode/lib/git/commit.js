@@ -442,6 +442,7 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	        			 patch.isRenamed() ? "RENAME" :
 	     				 patch.isTypeChange() ? "TYPECHANGE" :
 	     				 patch.isUnmodified() ? "UNMODIFY" :
+	     				 patch.isAdded() ? "ADDED" :
 	     				 patch.isUntracked() ? "UNTRACKED" : "NONE"
 	        
 	        diffs.push({
