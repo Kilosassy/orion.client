@@ -133,7 +133,6 @@ module.exports = function(options) {
 		DELETE: function(req, res, next, rest) {
 			if(rest.indexOf("clone/file/") === 0) {
 				var configPath = rest.replace("clone/file", "");
-				console.log("Removing git repository " + workspaceDir + configPath);
 				var rmdir = require('rimraf');
 				rmdir(workspaceDir.concat(configPath), function() {
 					res.statusCode = 200;

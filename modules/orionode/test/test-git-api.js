@@ -16,7 +16,6 @@ var git = require('nodegit');
 var fs = require('fs');
 var rmdir = require('rimraf');
 
-
 var CONTEXT_PATH = '/orionn';
 var PREFIX = CONTEXT_PATH + '/workspace', PREFIX_FILE = CONTEXT_PATH + '/file';
 var WORKSPACE = path.join(__dirname, '.test_workspace');
@@ -63,10 +62,6 @@ describe('Git API', function(done) {
 	before(function(done) { // testData.setUp.bind(null, parentDir)
 		testData.setUp(WORKSPACE, done);
 	});
-
-	// after(function(done) {
-	// 	rmdir(repoPath, done);
-	// })
 
 	describe('Creates a new directory and init repository', function() {
 		it('GET clone (initializes a git repo)', function(finished) {
@@ -190,6 +185,15 @@ describe('Git API', function(done) {
 			.done(function() {
 				finished();
 			});
+		});
+	});
+
+	describe('Removing a repository', function() {
+		it('DELETE clone (delete a repository)', function(finished) {
+			app.request()
+			.delete(CONTEXT_PATH + "/gitapi/clone/file/" + TEST_REPO_NAME)
+			.expect(200)
+			.end(finished);
 		});
 	});
 });
