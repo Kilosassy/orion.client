@@ -32,7 +32,7 @@ function getRemotes(workspaceDir, fileRoot, req, res, next, rest) {
 				var name = remote.name();
 				r.push({
 					"CloneLocation": "/gitapi/clone/file/" + fileDir,
-					"IsGerrit": "false", // should check 
+					"IsGerrit": false, // should check 
 					"GitUrl": remote.url(),
 					"Name": name,
 					"Location": "/gitapi/remote/" + name + "/file/" + fileDir,
@@ -130,6 +130,28 @@ function addRemote(workspaceDir, fileRoot, req, res, next, rest) {
 	})
 }
 
+function postRemote(workspaceDir, fileRoot, req, res, next, rest) {
+	rest = rest.replace("remote/", "");
+	var split = rest.split("/file/");
+	var repoPath = api.join(workspaceDir, split[1]);
+	var branch = split[0];
+
+	if (res.body.Fetch) {
+		fetchRemote(repoPath, res, branch)
+	} else {
+		pushRemote(repoPath, res, branch)
+	}
+
+}
+
+function fetchRemote(repoPath, res, branch) {
+
+}
+
+function pushRemote(repoPath, res, branch) {
+
+}
+
 function deleteRemote(workspaceDir, fileRoot, req, res, next, rest) {
 	rest = rest.replace("remote/", "");
 	var split = rest.split("/file/");
@@ -151,5 +173,6 @@ module.exports = {
 	getRemotesBranches: getRemotesBranches,
 	getRemotesBranchDetail: getRemotesBranchDetail,
 	addRemote: addRemote,
+	postRemote: postRemote,
 	deleteRemote: deleteRemote
 };

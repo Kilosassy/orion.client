@@ -116,6 +116,8 @@ module.exports = function(options) {
 				diff.getDiffLocation(workspaceDir, fileRoot, req, res, next, rest);
 			} else if (rest.indexOf("remote/file/") === 0) {
 				remotes.addRemote(workspaceDir, fileRoot, req, res, next, rest);
+			} else if (rest.indexOf("remote/") === 0) {
+				remotes.postRemote(workspaceDir, fileRoot, req, res, next, rest);
 			} else {	
 				writeError(403, res);
 			}
