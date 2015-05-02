@@ -188,6 +188,25 @@ describe('Git API', function(done) {
 		});
 	});
 
+	describe('Adding a remote', function() {
+		var remoteName = "testRemote";
+		var remoteURI = "http://test.example.com";
+
+		it('POST remote (adding a new remote)', function(finished) {
+			app.request()
+			.post(CONTEXT_PATH + "/gitapi/remote/file/" + TEST_REPO_NAME)
+			.send({
+				Remote: remoteName,
+				RemoteURI: remoteURI
+			})
+			.end(function(err, res) {
+				assert.ifError(err);
+				assert.equal(res.body.Location, "/gitapi/remote/" + remoteName + "/file/" + TEST_REPO_NAME);
+				finished();
+			})
+		})
+	});
+
 	describe('Removing a repository', function() {
 		it('DELETE clone (delete a repository)', function(finished) {
 			app.request()
