@@ -135,7 +135,7 @@ function postRemote(workspaceDir, fileRoot, req, res, next, rest) {
 	var split = rest.split("/file/");
 	var repoPath = api.join(workspaceDir, split[1]);
 	var branch = split[0];
-
+	console.log("POST REMOTE")
 	if (res.body.Fetch) {
 		fetchRemote(repoPath, res, branch)
 	} else {
@@ -145,11 +145,13 @@ function postRemote(workspaceDir, fileRoot, req, res, next, rest) {
 }
 
 function fetchRemote(repoPath, res, branch) {
-
+	console.log("fetch");
+	writeError(403, res);
 }
 
 function pushRemote(repoPath, res, branch) {
-
+	console.log("push");
+	writeError(403, res);
 }
 
 function deleteRemote(workspaceDir, fileRoot, req, res, next, rest) {

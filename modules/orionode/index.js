@@ -44,6 +44,21 @@ function startServer(options) {
 				orionClientRoot: ORION_CLIENT,
 				maxAge: options.maxAge
 			}))
+            .use(function(req, res, next) {
+                if (req.url === "/login" && req.method === "POST") {
+                    console.log("login")
+                    return res.end({
+                        "EmailConfirmed": false,
+                        "FullName": "New User",
+                        "HasPassword": true,
+                        "LastLoginTimestamp": "1416865840208",
+                        "Location": "/users/newuser",
+                        "UserName": "newuser"
+                    })
+                }
+
+                next();
+            })
 			// API handlers
 			.use(orionFile({
 				root: '/file',
