@@ -16,6 +16,24 @@ var Clone = git.Clone;
 var fs = require('fs');
 var url = require('url');
 
+function generateCommitObject(commit, fileDir) {
+	return {
+		"AuthorEmail": commit.author().email(), 
+		"AuthorName": commit.author().name(),
+		"Children":[],
+		"CommitterEmail": commit.committer().email(),
+		"CommitterName": commit.committer().name(),
+		"ContentLocation": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir + "?parts=body",
+		"DiffLocation": "/gitapi/diff/" + commit.sha() + "/file/" + fileDir,
+		"Diffs":[],
+		"Location": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir,
+		"Message": commit.message(),
+		"Name": commit.sha(),
+		"Time": commit.timeMs(),
+		"Type": "Commit"
+	};
+}
+
 function getCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	rest = rest.replace("commit/", "");
 	var query = url.parse(req.url, true).query;
@@ -153,21 +171,7 @@ function getCommitRevision(workspaceDir, fileRoot, req, res, next, rest) {
 				.then(function(commit) {
 
 					if (!page || count++ >= (page-1)*pageSize) {
-						commits.push({
-							"AuthorEmail": commit.author().name(), 
-							"AuthorName": commit.author().email(),
-							"Children":[],
-							"CommitterEmail": commit.committer().email(),
-							"CommitterName": commit.committer().name(),
-							"ContentLocation": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir + "?parts=body",
-							"DiffLocation": "/gitapi/diff/" + commit.sha() + "/file/" + fileDir,
-							"Diffs":[],
-							"Location": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir,
-							"Message": commit.message(),
-							"Name": commit.sha(),
-							"Time": commit.timeMs(),
-							"Type": "Commit"
-						});
+						commits.push(generateCommitObject(commit, fileDir));
 					}
 
 					if (numToReturn && commits.length === numToReturn) {
@@ -229,21 +233,7 @@ function getCommitLog(workspaceDir, fileRoot, req, res, next, rest) {
 			if (++count > pageSize*page) {
 				sendResponse();
 			} else if (count >= (page-1)*pageSize) {
-				commits.push({
-					"AuthorEmail": commit.author().name(), 
-					"AuthorName": commit.author().email(),
-					"Children":[],
-					"CommitterEmail": commit.committer().email(),
-					"CommitterName": commit.committer().name(),
-					"ContentLocation": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir + "?parts=body",
-					"DiffLocation": "/gitapi/diff/" + commit.sha() + "/file/" + fileDir,
-					"Diffs":[],
-					"Location": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir,
-					"Message": commit.message(),
-					"Name": commit.sha(),
-					"Time": commit.timeMs(),
-					"Type": "Commit"
-				});
+				commits.push(generateCommitObject(commit, fileDir));
 			}
 		});
 
@@ -294,20 +284,7 @@ function getCommitMetadata(workspaceDir, fileRoot, req, res, next, rest) {
 		git.Commit.lookup(repo, commitID)
 		.then(function(commit) {
 			var commitResp = {
-				"Children": [{
-					"AuthorEmail": commit.author().name, 
-					"AuthorName": commit.author().email,
-					"Children":[],
-					"CommitterEmail": commit.committer().email,
-					"CommitterName": commit.committer.name,
-					"ContentLocation": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir + "?parts=body",
-					"DiffLocation": "/gitapi/diff/" + commit.sha() + "/file/" + fileDir,
-					"Location": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir,
-					"Message": commit.message(),
-					"Name": commit.sha(),
-					"Time": commit.timeMs(),
-					"Type": "Commit"	
-				}],
+				"Children": [generateCommitObject(commit, fileDir)],
 				"RepositoryPath": ""
 			}
 			var resp = JSON.stringify(commitResp);
@@ -460,21 +437,7 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	})
 	.done(function() {
         res.statusCode = 200;
-        var resp = JSON.stringify({
-			"AuthorEmail": author.email(),
-			"AuthorName": author.name(),
-			"Children": [],
-			"CommitterEmail": committer.email(),
-			"CommitterName": committer.name(),
-			"ContentLocation": "/gitapi/commit/" + thisCommit.sha() + "/file/" + fileDir + "?parts=body",
-			"DiffLocation": "/gitapi/diff/" + thisCommit.sha() + "file/" + fileDir,
-			"Diffs": diffs,
-			"Location": "/gitapi/commit/" + thisCommit.sha() + "/file/" + fileDir,
-			"Message": thisCommit.message(),
-			"Name": thisCommit.sha(),
-			"Time": thisCommit.time(),
-			"Type": "Commit"
-		});
+        var resp = JSON.stringify(generateCommitObject(thisCommit, fileDir));
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Content-Length', resp.length);
         res.end(resp);
