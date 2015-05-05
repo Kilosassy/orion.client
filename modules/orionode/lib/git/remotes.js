@@ -239,9 +239,19 @@ function pushRemote(repoPath, req, res, remote) {
 		return repo.getReference(req.body.PushSrcRef);
 	})
 	.then(function(ref) {
+		if (!req.body.gitSshUsername || !req.body.gitSshPassword) {
+			throw new Error(remoteObj.url() + ": not authorized");
+		}
+
 		remoteObj.setCallbacks({
 			certificateCheck: function() {
 				return 1; // Continues connection even if SSL certificate check fails. 
+			},
+			credentials: function() {
+				return git.Cred.userpassPlaintextNew(
+					req.body.gitSshUsername,
+					req.body.gitSshPassword
+				);
 			}
 		});
 
@@ -274,7 +284,38 @@ function pushRemote(repoPath, req, res, remote) {
 	})
 	.catch(function(err) {
 		console.log(err);
-		writeError(403, res);
+		var parsedUrl = url.parse(remoteObj.url(), true);
+		// writeError(403, res);
+		var resp = JSON.stringify({
+			// "Id": "11111",
+			"Location": "/task/id/THISISAPLACEHOLDER",
+			//"Message": "Pushing " + remote + "...",
+			//"PercentComplete": 100,
+			//"Running": false
+			"cancelable": true,
+			"lengthComputable": false,
+			"timestamp": 1234567890,
+			"Result": {
+				HttpCode: 401,
+				Code: 0,
+				DetailedMessage: err.message,
+				JsonData: {
+					"Host": parsedUrl.host,
+					"Scheme": parsedUrl.protocol.replace(":", ""),
+					"Url": remoteObj.url(),
+					"HumanishName": parsedUrl.pathname.substring(parsedUrl.pathname.lastIndexOf("/") + 1).replace(".git", "")
+				},
+				Message: err.message,
+				Severity: "Error"
+			},
+			"type": "loadstart",
+			"uriUnqualStrategy": "ALL_NO_GIT"
+		});
+
+		res.statusCode = 200;
+		res.setHeader('Content-Type', 'application/json');
+		res.setHeader('Content-Length', resp.length);
+		res.end(resp);
 	})
 }
 
