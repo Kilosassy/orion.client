@@ -92,7 +92,7 @@ function getRemotesBranches(workspaceDir, fileRoot, req, res, next, rest) {
 								"CommitLocation": "/gitapi/commit/" + commit.sha() + "/file/" + fileDir,
 								"Id": commit.sha(),
 								"Location": "/gitapi/remote/" + remoteName + "/file/" + fileDir,
-								"Name": ref.name()
+								"Name": rName
 							})
 							callback();
 						});
@@ -152,7 +152,7 @@ function postRemote(workspaceDir, fileRoot, req, res, next, rest) {
 	var split = rest.split("/file/");
 	var repoPath = api.join(workspaceDir, split[1]);
 	var remote = split[0];
-	
+
 	if (req.body.Fetch) {
 		fetchRemote(repoPath, res, remote)
 	} else {
