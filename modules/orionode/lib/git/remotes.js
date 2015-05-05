@@ -13,6 +13,7 @@ var api = require('../api'), writeError = api.writeError;
 var async = require('async');
 var git = require('nodegit');
 var url = require('url');
+var tasks = require('../tasks');
 
 function getRemotes(workspaceDir, fileRoot, req, res, next, rest) {
 	var repoPath = rest.replace("remote/file/", "");
@@ -222,12 +223,21 @@ function fetchRemote(repoPath, res, remote) {
 }
 
 function pushRemote(repoPath, req, res, remote) {
-	// remote variable should be [remote]/[branch]
-	var split = remote.split("/");
+	var taskID = (new Date).getTime(); // Just use the current time
+	var split = remote.split("/"); // remote variable should be [remote]/[branch]
 	var remote = split[0];
 	var branch = split[1];
 	var repo;
 	var remoteObj;
+
+	var task = tasks.addTask(taskID, "Pushing " + remote + "...", true, 0);
+
+	var resp = JSON.stringify(task);
+
+	res.statusCode = 202;
+	res.setHeader('Content-Type', 'application/json');
+	res.setHeader('Content-Length', resp.length);
+	res.end(resp);
 
 	git.Repository.open(repoPath)
 	.then(function(r) {
@@ -239,7 +249,8 @@ function pushRemote(repoPath, req, res, remote) {
 		return repo.getReference(req.body.PushSrcRef);
 	})
 	.then(function(ref) {
-		if (!req.body.gitSshUsername || !req.body.gitSshPassword) {
+
+		if (!req.body.GitSshUsername || !req.body.GitSshPassword) {
 			throw new Error(remoteObj.url() + ": not authorized");
 		}
 
@@ -249,53 +260,62 @@ function pushRemote(repoPath, req, res, remote) {
 			},
 			credentials: function() {
 				return git.Cred.userpassPlaintextNew(
-					req.body.gitSshUsername,
-					req.body.gitSshPassword
+					req.body.GitSshUsername,
+					req.body.GitSshPassword
 				);
 			}
 		});
 
+		var refSpec = ref.name() + ":refs/heads/" + branch;
+		console.log(refSpec)
 		return remoteObj.push(
-			[ref.name() + ":refs/heads/" + remote + "/" + branch ],
+			[refSpec],
 			null,
 			repo.defaultSignature(),
 			"Push to " + branch
 		);
 	})
 	.then(function(err) {
-		if (!err) {
-			// This returns when the task completes, so just give it a fake task.
-			var resp = JSON.stringify({
-				"Id": "11111",
-				"Location": "/task/id/THISISAPLACEHOLDER",
-				"Message": "Pushing " + remote + "...",
-				"PercentComplete": 100,
-				"Running": false
-			});
 
-			res.statusCode = 201;
-			res.setHeader('Content-Type', 'application/json');
-			res.setHeader('Content-Length', resp.length);
-			res.end(resp);
+		if (!err) {
+			var parsedUrl = url.parse(remoteObj.url(), true);
+			tasks.updateTask(
+				taskID, 
+				100,
+				{
+					HttpCode: 200,
+					Code: 0,
+					DetailedMessage: "OK",
+					JsonData: {
+						"Host": parsedUrl.host,
+						"Scheme": parsedUrl.protocol.replace(":", ""),
+						"Url": remoteObj.url(),
+						"HumanishName": parsedUrl.pathname.substring(parsedUrl.pathname.lastIndexOf("/") + 1).replace(".git", ""),
+						"Message": "",
+						"Severity": "Normal",
+						Updates: [{
+							LocalName: req.body.PushSrcRef,
+							RemoteName: remote + "/" + branch,
+							Result: "UP_TO_DATE"
+						}]
+					},
+					Message: "OK",
+					Severity: "OK"
+				},
+				"loadend"
+			);
 		} else {
-			console.log("push failed")
-			writeError(403, res);
+			throw new Error("Push failed.");
 		}
 	})
 	.catch(function(err) {
 		console.log(err);
 		var parsedUrl = url.parse(remoteObj.url(), true);
-		// writeError(403, res);
-		var resp = JSON.stringify({
-			// "Id": "11111",
-			"Location": "/task/id/THISISAPLACEHOLDER",
-			//"Message": "Pushing " + remote + "...",
-			//"PercentComplete": 100,
-			//"Running": false
-			"cancelable": true,
-			"lengthComputable": false,
-			"timestamp": 1234567890,
-			"Result": {
+
+		tasks.updateTask(
+			taskID, 
+			100,
+			{
 				HttpCode: 401,
 				Code: 0,
 				DetailedMessage: err.message,
@@ -308,14 +328,8 @@ function pushRemote(repoPath, req, res, remote) {
 				Message: err.message,
 				Severity: "Error"
 			},
-			"type": "loadstart",
-			"uriUnqualStrategy": "ALL_NO_GIT"
-		});
-
-		res.statusCode = 200;
-		res.setHeader('Content-Type', 'application/json');
-		res.setHeader('Content-Length', resp.length);
-		res.end(resp);
+			"error"
+		);
 	})
 }
 

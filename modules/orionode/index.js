@@ -19,6 +19,7 @@ var connect = require('connect'),
     orionGit = require('./lib/git'),
     orionNodeStatic = require('./lib/orionode_static'),
     orionStatic = require('./lib/orion_static'),
+    orionTasks = require('./lib/tasks'),
     term = require('term.js');
 
 var LIBS = path.normalize(path.join(__dirname, 'lib/')),
@@ -45,6 +46,8 @@ function startServer(options) {
 				maxAge: options.maxAge
 			}))
             .use(function(req, res, next) {
+
+                // Fake login response
                 if (req.url === "/login" && req.method === "POST") {
                     console.log("login")
                     return res.end(JSON.stringify({
@@ -59,6 +62,9 @@ function startServer(options) {
 
                 next();
             })
+            .use(orionTasks.orionTasksAPI({
+                root: '/task'
+            }))
 			// API handlers
 			.use(orionFile({
 				root: '/file',
