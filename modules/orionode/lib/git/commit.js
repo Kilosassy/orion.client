@@ -12,8 +12,6 @@
 var api = require('../api'), writeError = api.writeError;
 var git = require('nodegit');
 var path = require("path");
-var Clone = git.Clone;
-var fs = require('fs');
 var url = require('url');
 
 function generateCommitObject(commit, fileDir) {

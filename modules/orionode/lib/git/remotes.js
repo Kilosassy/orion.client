@@ -12,6 +12,7 @@
 var api = require('../api'), writeError = api.writeError;
 var async = require('async');
 var git = require('nodegit');
+var url = require('url');
 
 function getRemotes(workspaceDir, fileRoot, req, res, next, rest) {
 	var repoPath = rest.replace("remote/file/", "");
@@ -115,6 +116,18 @@ function addRemote(workspaceDir, fileRoot, req, res, next, rest) {
 	var fileDir = repoPath;
 	repoPath = api.join(workspaceDir, repoPath);
 	
+	if (!req.body.Remote || !req.body.RemoteURI) {
+		return writeError(500, res);
+	}
+
+	// It appears that the java server does not let you add a remote if
+	// it doesn't have a protocol (it seems to check for a colon).
+	var parsedUrl = url.parse(req.body.RemoteURI, true);
+
+	if (!parsedUrl.protocol) {
+		writeError(403, res);
+	}
+
 	git.Repository.open(repoPath)
 	.then(function(repo) {
 		return git.Remote.create(repo, req.body.Remote, req.body.RemoteURI);
@@ -128,30 +141,86 @@ function addRemote(workspaceDir, fileRoot, req, res, next, rest) {
 		res.setHeader('Content-Length', resp.length);
 		res.end(resp);
 	})
+	.catch(function(err) {
+		console.log(err);
+		writeError(403, res);
+	})
 }
 
 function postRemote(workspaceDir, fileRoot, req, res, next, rest) {
 	rest = rest.replace("remote/", "");
 	var split = rest.split("/file/");
 	var repoPath = api.join(workspaceDir, split[1]);
-	var branch = split[0];
-	console.log("POST REMOTE")
-	if (res.body.Fetch) {
-		fetchRemote(repoPath, res, branch)
+	var remote = split[0];
+	
+	if (req.body.Fetch) {
+		fetchRemote(repoPath, res, remote)
 	} else {
-		pushRemote(repoPath, res, branch)
+		pushRemote(repoPath, res, remote)
 	}
 
 }
 
-function fetchRemote(repoPath, res, branch) {
-	console.log("fetch");
-	writeError(403, res);
+function fetchRemote(repoPath, res, remote) {
+	var repo;
+	git.Repository.open(repoPath)
+	.then(function(r) {
+		repo = r;
+		return git.Remote.lookup(repo, remote);
+	})
+	.then(function(remote) {
+		remote.setCallbacks({
+			certificateCheck: function() {
+				return 1; // Continues connection even if SSL certificate check fails. 
+			}
+		});
+
+		var refSpec = "+refs/heads/*:refs/remotes/" + remote.name() + "/*";
+
+		return remote.fetch(
+			[refSpec],
+			git.Signature.default(repo),
+			"fetch"	
+		);
+	})
+	.then(function(err) {
+		if (!err) {
+			// This returns when the task completes, so just give it a fake task.
+			var resp = JSON.stringify({
+				"Id": "11111",
+				"Location": "/task/id/THISISAPLACEHOLDER",
+				"Message": "Fetching " + remote + "...",
+				"PercentComplete": 100,
+				"Running": false
+			});
+
+			res.statusCode = 201;
+			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Length', resp.length);
+			res.end(resp);
+		} else {
+			console.log("fetch failed")
+			writeError(403, res);
+		}
+	})
+	.catch(function(err) {
+		console.log(err);
+		writeError(403, res);
+	})
 }
 
-function pushRemote(repoPath, res, branch) {
+function pushRemote(repoPath, res, remote) {
 	console.log("push");
-	writeError(403, res);
+	var repo;
+
+	git.Repository.open(repoPath)
+	.then(function(r) {
+		repo = r;
+		return git.Remote.lookup(repo, remote);
+	})
+	.then(function(remote) {
+		// remote.push
+	})
 }
 
 function deleteRemote(workspaceDir, fileRoot, req, res, next, rest) {

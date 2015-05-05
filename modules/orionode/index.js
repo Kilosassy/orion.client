@@ -47,14 +47,14 @@ function startServer(options) {
             .use(function(req, res, next) {
                 if (req.url === "/login" && req.method === "POST") {
                     console.log("login")
-                    return res.end({
+                    return res.end(JSON.stringify({
                         "EmailConfirmed": false,
-                        "FullName": "New User",
+                        "FullName": "anonymous",
                         "HasPassword": true,
                         "LastLoginTimestamp": "1416865840208",
-                        "Location": "/users/newuser",
-                        "UserName": "newuser"
-                    })
+                        "Location": "/workspace/orionode",
+                        "UserName": "anonymous"
+                    }))
                 }
 
                 next();
