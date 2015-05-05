@@ -108,7 +108,22 @@ function getRemotesBranches(workspaceDir, fileRoot, req, res, next, rest) {
 }
 
 function getRemotesBranchDetail(workspaceDir, fileRoot, req, res, next, rest) {
+// 	rest = rest.replace("remote/", "");
+// 	var split = rest.split("/file/");
+// 	var repoPath = api.join(workspaceDir, split[1]);
+// 	var remote = split[0];
 
+// 	var resp = JSON.stringify({
+// 		"CommitLocation": "/gitapi/commit/" + bbbcc34fe10c2d731e7f97618f4f469c2f763a31 + "/file/" + repoPath,
+// 		"HeadLocation": "/gitapi/commit/" + remote + "/file/" + repoPath,
+// 		"Id": "bbbcc34fe10c2d731e7f97618f4f469c2f763a31",
+// 		"Location": "/gitapi/remote/" + remote + "/file/" + repoPath
+// 	});
+
+// 	res.statusCode = 200;
+// 	res.setHeader('Content-Type', 'application/json');
+// 	res.setHeader('Content-Length', resp.length);
+// 	res.end(resp);
 }
 
 function addRemote(workspaceDir, fileRoot, req, res, next, rest) {

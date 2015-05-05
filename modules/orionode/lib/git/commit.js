@@ -435,7 +435,9 @@ function postCommit(workspaceDir, fileRoot, req, res, next, rest) {
 	})
 	.done(function() {
         res.statusCode = 200;
-        var resp = JSON.stringify(generateCommitObject(thisCommit, fileDir));
+        var resp = generateCommitObject(thisCommit, fileDir);
+        resp["Diffs"] = diffs;
+        resp = JSON.stringify(resp);
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Content-Length', resp.length);
         res.end(resp);

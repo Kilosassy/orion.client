@@ -58,7 +58,7 @@ function withDefaultWorkspace(callback) {
 /**
  * see http://wiki.eclipse.org/Orion/Server_API/Workspace_API
  */
-describe('Git API', function(done) {
+describe('Use Case 1: init repo, add file, commit file, add remote, fetch from remote, delete repo', function(done) {
 	before(function(done) { // testData.setUp.bind(null, parentDir)
 		testData.setUp(WORKSPACE, done);
 	});
@@ -187,10 +187,10 @@ describe('Git API', function(done) {
 			});
 		});
 	});
-
+	
+	var remoteName = "origin";
 	describe('Adding a remote', function() {
-		var remoteName = "testRemote";
-		var remoteURI = "http://test.example.com";
+		var remoteURI = "https://github.com/eclipse/sketch.git"; // small example repo from Eclipse
 
 		it('POST remote (adding a new remote)', function(finished) {
 			app.request()
@@ -207,6 +207,23 @@ describe('Git API', function(done) {
 		})
 	});
 
+	describe('Fetching a remote', function() {
+
+		it('POST remote (fetching changes from a remote)', function(finished) {
+			this.timeout(20000); // increase timeout for fetching from remote
+			app.request()
+			.post(CONTEXT_PATH + "/gitapi/remote/" + remoteName + "/file/" + TEST_REPO_NAME)
+			.send({
+				Fetch: "true"
+			})
+			.end(function(err, res) {
+				assert.ifError(err);
+				assert.equal(res.body.Message, "Fetching " + remoteName + "...");
+				finished();
+			})
+		})
+	});
+
 	describe('Removing a repository', function() {
 		it('DELETE clone (delete a repository)', function(finished) {
 			app.request()
@@ -215,4 +232,5 @@ describe('Git API', function(done) {
 			.end(finished);
 		});
 	});
+
 });
