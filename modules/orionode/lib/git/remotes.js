@@ -54,8 +54,6 @@ function getRemotes(workspaceDir, fileRoot, req, res, next, rest) {
 	})
 }
 
-
-/* */
 function getRemotesBranches(workspaceDir, fileRoot, req, res, next, rest) {
 	var remoteName = rest.replace("remote/", "").substring(0, rest.lastIndexOf("/file/")-"/file/".length-1);
 	var repoPath = rest.substring(rest.lastIndexOf("/file/")).replace("/file/","");
@@ -164,16 +162,15 @@ function addRemote(workspaceDir, fileRoot, req, res, next, rest) {
 
 function postRemote(workspaceDir, fileRoot, req, res, next, rest) {
 	rest = rest.replace("remote/", "");
-	var split = rest.split("/file/");
+	var split = rest.split("/file/"); //If the branch name is /file/, this is kind of a problem.
 	var repoPath = api.join(workspaceDir, split[1]);
 	var remote = split[0];
 
 	if (req.body.Fetch) {
 		fetchRemote(repoPath, res, remote)
 	} else {
-		pushRemote(repoPath, res, remote)
+		pushRemote(repoPath, req, res, remote)
 	}
-
 }
 
 function fetchRemote(repoPath, res, remote) {
@@ -224,17 +221,60 @@ function fetchRemote(repoPath, res, remote) {
 	})
 }
 
-function pushRemote(repoPath, res, remote) {
-	console.log("push");
+function pushRemote(repoPath, req, res, remote) {
+	// remote variable should be [remote]/[branch]
+	var split = remote.split("/");
+	var remote = split[0];
+	var branch = split[1];
 	var repo;
+	var remoteObj;
 
 	git.Repository.open(repoPath)
 	.then(function(r) {
 		repo = r;
 		return git.Remote.lookup(repo, remote);
 	})
-	.then(function(remote) {
-		// remote.push
+	.then(function(r) {
+		remoteObj = r;
+		return repo.getReference(req.body.PushSrcRef);
+	})
+	.then(function(ref) {
+		remoteObj.setCallbacks({
+			certificateCheck: function() {
+				return 1; // Continues connection even if SSL certificate check fails. 
+			}
+		});
+
+		return remoteObj.push(
+			[ref.name() + ":refs/heads/" + remote + "/" + branch ],
+			null,
+			repo.defaultSignature(),
+			"Push to " + branch
+		);
+	})
+	.then(function(err) {
+		if (!err) {
+			// This returns when the task completes, so just give it a fake task.
+			var resp = JSON.stringify({
+				"Id": "11111",
+				"Location": "/task/id/THISISAPLACEHOLDER",
+				"Message": "Pushing " + remote + "...",
+				"PercentComplete": 100,
+				"Running": false
+			});
+
+			res.statusCode = 201;
+			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Length', resp.length);
+			res.end(resp);
+		} else {
+			console.log("push failed")
+			writeError(403, res);
+		}
+	})
+	.catch(function(err) {
+		console.log(err);
+		writeError(403, res);
 	})
 }
 
