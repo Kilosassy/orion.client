@@ -62,7 +62,7 @@ function withDefaultWorkspace(callback) {
  * see http://wiki.eclipse.org/Orion/Server_API/Workspace_API
  */
 
-describe('Use Case 1: init repo, add file, commit file, add remote, fetch from remote, delete repo', function(done) {
+describe('Use Case 1: init repo, add file, commit file, add remote, get list of remotes, fetch from remote, delete repo', function(done) {
 	before(function(done) { // testData.setUp.bind(null, parentDir)
 		testData.setUp(WORKSPACE, done);
 	});
@@ -212,6 +212,39 @@ describe('Use Case 1: init repo, add file, commit file, add remote, fetch from r
 			})
 		})
 	});
+
+	describe('Get list of remotes',  function() {
+		var numRemotes;
+
+		it('GET remote (getting the list of remotes)', function(finished) {
+			app.request()
+			.get(CONTEXT_PATH + "/gitapi/remote/file/" + TEST_REPO_NAME)
+			.expect(200)
+			.end(function(err, res) {
+				assert.ifError(err);
+				assert.equal(res.body.Children[0].Name, remoteName);
+				numRemotes = res.body.Children.length;
+				finished();
+			})
+		})
+
+		it('Check nodegit for list of remotes', function(finished) {
+			git.Repository.open(repoPath)
+			.then(function(repo) {
+				return git.Remote.list(repo);
+			})
+			.then(function(list) {
+				assert.equal(list.length, numRemotes);
+				assert(list[0], remoteName);
+			})
+			.catch(function(err) {
+				assert.ifError(err);
+			})
+			.done(function() {
+				finished();
+			})
+		})
+	})
 
 	describe('Fetching a remote', function() {
 
