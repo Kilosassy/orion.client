@@ -227,7 +227,7 @@ function createBranch(workspaceDir, fileRoot, req, res, next, rest) {
 						"Type": "Branch"
 					});
 					
-					res.statusCode = 200;
+					res.statusCode = 201;
 					res.setHeader('Content-Type', 'application/json');
 					res.setHeader('Content-Length', resp.length);
 					res.end(resp);

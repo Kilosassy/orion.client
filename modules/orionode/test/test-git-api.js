@@ -61,6 +61,7 @@ function withDefaultWorkspace(callback) {
 /**
  * see http://wiki.eclipse.org/Orion/Server_API/Workspace_API
  */
+
 describe('Use Case 1: init repo, add file, commit file, add remote, fetch from remote, delete repo', function(done) {
 	before(function(done) { // testData.setUp.bind(null, parentDir)
 		testData.setUp(WORKSPACE, done);
@@ -203,6 +204,7 @@ describe('Use Case 1: init repo, add file, commit file, add remote, fetch from r
 				Remote: remoteName,
 				RemoteURI: remoteURI
 			})
+			.expect(201)
 			.end(function(err, res) {
 				assert.ifError(err);
 				assert.equal(res.body.Location, "/gitapi/remote/" + remoteName + "/file/" + TEST_REPO_NAME);
@@ -220,6 +222,7 @@ describe('Use Case 1: init repo, add file, commit file, add remote, fetch from r
 			.send({
 				Fetch: "true"
 			})
+			.expect(201)
 			.end(function(err, res) {
 				assert.ifError(err);
 				assert.equal(res.body.Message, "Fetching " + remoteName + "...");
@@ -359,6 +362,7 @@ describe('Use Case 2: clone a repo, delete repo', function(done) {
 			.send({
 				GitUrl: gitURL
 			})
+			.expect(201)
 			.end(function(err, res) {
 				assert.ifError(err);
 				assert.equal(res.body.Message, "Cloning " + WORKSPACE + " @ " + gitURL);
@@ -382,13 +386,177 @@ describe('Use Case 2: clone a repo, delete repo', function(done) {
 			.expect(200)
 			.end(function(err, res) {
 				assert.ifError(err);
-				console.log(res.body.Children[0])
-				// assert.equal(res.body.Children[0].)
+				// tag is from cloned repo
+				// one reason it could break is if the tag was removed from the cloned repo
+				assert.equal(res.body.Children[0].Name, '0.0.1')
 				finished();
 			})
 
 		})
 	})
+
+	describe('Removing a repository', function() {
+
+		it('DELETE clone (delete a repository)', function(finished) {
+			app.request()
+			.delete(CONTEXT_PATH + "/gitapi/clone/file/" + TEST_REPO_NAME)
+			.expect(200)
+			.end(finished);
+		});
+
+		it('Check nodegit for deleted repo', function(finished) {
+			git.Repository.open(repoPath)
+			.catch(function(err) {
+				return err;
+			})
+			.done(function(err) {
+				assert(err); // returns an error because repo does not exist, which is what we want
+				finished();
+			});
+		});
+
+	});
+
+});
+
+describe('Use Case 3: init a repo, add a remote, create branch, list branches, delete branch, delete repo', function(done) {
+	before(function(done) { // testData.setUp.bind(null, parentDir)
+		testData.setUp(WORKSPACE, done);
+	});
+
+	describe('Creates a new directory and init repository', function() {
+		it('GET clone (initializes a git repo)', function(finished) {
+			app.request()
+			.post(CONTEXT_PATH + "/gitapi/clone/")
+			.send({
+				"Name":  TEST_REPO_NAME,
+				"Location": PREFIX
+			})
+			.expect(201)
+			.end(function(err, res) {
+				assert.ifError(err);
+				assert.equal(res.body.Location, "/gitapi/clone/file/" + TEST_REPO_NAME)
+				finished();
+			})
+		});
+
+		it('Check the directory was made', function() {
+			var stat = fs.statSync(repoPath);
+			assert(stat.isDirectory());
+		})
+
+		it('Check nodegit that the repo was initialized', function(finished) {
+			git.Repository.open(repoPath)
+			.then(function(repo) {
+				return repo.getReferenceCommit("HEAD");
+			})
+			.then(function(commit) {
+				assert(commit.message(), "Initial commit")
+			})
+			.catch(function(err) {
+				assert.ifError(err);
+			})
+			.done(function() {
+				finished();
+			})
+		})
+	});
+
+	var remoteName = "origin";
+
+	describe('Adding a remote', function() {
+		var remoteURI = "https://github.com/albertcui/orion-test-repo.git"; // small example repo from Eclipse
+
+		it('POST remote (adding a new remote)', function(finished) {
+			app.request()
+			.post(CONTEXT_PATH + "/gitapi/remote/file/" + TEST_REPO_NAME)
+			.send({
+				Remote: remoteName,
+				RemoteURI: remoteURI
+			})
+			.expect(201)
+			.end(function(err, res) {
+				assert.ifError(err);
+				assert.equal(res.body.Location, "/gitapi/remote/" + remoteName + "/file/" + TEST_REPO_NAME);
+				finished();
+			})
+		})
+	});
+
+	var branchName = "test-branch"
+
+	describe('Adding a branch', function() {
+
+		it('POST branch (creating a branch)', function(finished) {
+			app.request()
+			.post(CONTEXT_PATH + "/gitapi/branch/file/" + TEST_REPO_NAME)
+			.send({
+				Name: branchName
+			})
+			.expect(201)
+			.end(function(err, res) {
+				assert.ifError(err);
+				assert.equal(res.body.CommitLocation, "/gitapi/commit/" + branchName + "/file/" + TEST_REPO_NAME);
+				assert.equal(res.body.Location, "/gitapi/branch/" + branchName + "/file/" + TEST_REPO_NAME);
+				finished();
+			})
+		})
+
+		it('Check nodegit that branch exists', function(finished) {
+			git.Repository.open(repoPath)
+			.then(function(repo) {
+				return repo.getBranch(branchName);
+			})
+			.then(function(ref) {
+				assert(ref.name(), "refs/head/" + branchName);
+			})
+			.catch(function(err) {
+				assert.ifError(err);
+			})
+			.done(function() {
+				finished();
+			})
+		})
+	})
+
+	describe('Getting list of branches', function() {
+
+		it('GET branch (listing branches)', function(finished) {
+			app.request()
+			.get(CONTEXT_PATH + "/gitapi/branch/file/" + TEST_REPO_NAME)
+			.expect(200)
+			.end(function(err, res) {
+				assert.ifError(err);
+				assert.equal(res.body.Children[0].FullName, "refs/heads/master");
+				assert.equal(res.body.Children[1].FullName, "refs/heads/" + branchName);
+				finished();
+			})
+		})
+	});
+
+	describe('Deleting a branch', function() {
+
+		it('DELETE branch (removing a branch)', function(finished) {
+			app.request()
+			.delete(CONTEXT_PATH + "/gitapi/branch/" + branchName + "/file/" + TEST_REPO_NAME)
+			.expect(200)
+			.end(finished);
+		})
+
+		it('Check nodegit that branch exists', function(finished) {
+			git.Repository.open(repoPath)
+			.then(function(repo) {
+				return repo.getBranch(branchName);
+			})
+			.catch(function(err) {
+				return err;
+			})
+			.done(function(err) {
+				assert(err); // returns an error because branch does not exist, which is what we want
+				finished();
+			});
+		})
+	});
 
 	describe('Removing a repository', function() {
 
