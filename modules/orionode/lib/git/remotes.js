@@ -267,7 +267,9 @@ function pushRemote(repoPath, req, res, remote) {
 		});
 
 		var refSpec = ref.name() + ":refs/heads/" + branch;
-		console.log(refSpec)
+
+		if (req.body.Force) refSpec = "+" + refSpec;
+
 		return remoteObj.push(
 			[refSpec],
 			null,
