@@ -22,6 +22,9 @@ var WORKSPACE = path.join(__dirname, '.test_workspace');
 var DEFAULT_WORKSPACE_NAME = 'Orionode Workspace';
 
 var app = testData.createApp()
+		.use(CONTEXT_PATH, require('../lib/tasks').orionTasksAPI({
+			root: '/task',
+		}))
 		.use(CONTEXT_PATH, require('../lib/workspace')({
 			root: '/workspace',
 			fileRoot: '/file',
@@ -249,42 +252,73 @@ describe('Use Case 1: init repo, add file, commit file, add remote, fetch from r
 		});
 	})
 
-	// describe('Add a new remote and push to it', function() {
+	describe('Add a new remote and push to it', function() {
 		
-	// 	var remoteURI = "https://github.com/albertcui/orion-test-repo.git"; // small test repo
-	// 	var remoteName = "origin"
-	// 	var branchName = "master"
+		var remoteURI = "https://github.com/oriongittester/orion-test-repo.git"; // small test repo
+		var remoteName = "origin"
+		var branchName = "master"
 
-	// 	it('POST remote (adding a new remote)', function(finished) {
-	// 		app.request()
-	// 		.post(CONTEXT_PATH + "/gitapi/remote/file/" + TEST_REPO_NAME)
-	// 		.send({
-	// 			Remote: remoteName,
-	// 			RemoteURI: remoteURI
-	// 		})
-	// 		.end(function(err, res) {
-	// 			assert.ifError(err);
-	// 			assert.equal(res.body.Location, "/gitapi/remote/" + remoteName + "/file/" + TEST_REPO_NAME);
-	// 			finished();
-	// 		})
-	// 	})
+		// Credentials for a github user made for testing... Perhaps need a better solution.
+		var username = "oriongittester";
+		var password = "testpassword1";
 
-	// 	it('POST remote (pushign to a new remote)', function(finished) {
-	// 		app.request()
-	// 		.post(CONTEXT_PATH + "/gitapi/remote/" + remoteName + "/" + branchName + "/file/" + TEST_REPO_NAME);
-	// 		.send({
-	// 			Force: true; // force push
+		it('POST remote (adding a new remote)', function(finished) {
+			app.request()
+			.post(CONTEXT_PATH + "/gitapi/remote/file/" + TEST_REPO_NAME)
+			.send({
+				Remote: remoteName,
+				RemoteURI: remoteURI
+			})
+			.expect(201)
+			.end(function(err, res) {
+				assert.ifError(err);
+				assert.equal(res.body.Location, "/gitapi/remote/" + remoteName + "/file/" + TEST_REPO_NAME);
+				finished();
+			})
+		})
 
+		it('POST remote (pushing to a new remote)', function(finished) {
 
-	// 		})
-	// 		.end(function(err, res) {
-	// 			assert.ifError(err);
-	// 			assert.equal()
-	// 			finished();
-	// 		})
-	// 	})
+			this.timeout(5000);
 
-	// })
+			app.request()
+			.post(CONTEXT_PATH + "/gitapi/remote/" + remoteName + "/" + branchName + "/file/" + TEST_REPO_NAME)
+			.send({
+				Force: true, // force push so it doesn't matter what's on the repo.
+				GitSshUsername: username,
+				GitSshPassword: password,
+				PushSrcRef: "HEAD"
+			})
+			.expect(202)
+			.end(function(err, res) {
+				assert.ifError(err);
+				assert(res.body.Location);
+
+				var location = res.body.Location; 
+
+				// Pushing a remote returns a task. Poll the task location
+				// until it completes.
+				function checkComplete() {
+					app.request()
+					.get(CONTEXT_PATH + location)
+					.expect(200)
+					.end(function(err, res) {
+						assert.ifError(err);
+						assert(res.body)
+						if (res.body.type === "loadend") {
+							return finished();
+						}
+
+						location = res.body.Location; 
+						setTimeout(checkComplete, 500);
+					})
+				}
+
+				setTimeout(checkComplete, 500);
+			})
+		})
+
+	})
 
 	describe('Removing a repository', function() {
 
