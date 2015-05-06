@@ -309,3 +309,73 @@ describe('Use Case 1: init repo, add file, commit file, add remote, fetch from r
 	});
 
 });
+
+describe('Use Case 2: clone a repo, delete repo', function(done) {
+	before(function(done) { // testData.setUp.bind(null, parentDir)
+		testData.setUp(WORKSPACE, done);
+	});
+
+	describe('Cloning a new repository', function() {
+
+		it('POST clone (creating a respository clone)', function(finished) {
+			var gitURL = "https://github.com/eclipse/sketch.git"
+			this.timeout(20000); // increase timeout for cloning from repo
+			app.request()
+			.post(CONTEXT_PATH + "/gitapi/clone/")
+			.send({
+				GitUrl: gitURL
+			})
+			.end(function(err, res) {
+				assert.ifError(err);
+				assert.equal(res.body.Message, "Cloning " + WORKSPACE + " @ " + gitURL);
+				finished();
+			})
+		})
+
+		it('Check the directory was made', function() {
+			var stat = fs.statSync(WORKSPACE + "/sketch");
+			assert(stat.isDirectory());
+		})
+
+	});
+
+	describe('Listing tags', function() {
+
+		it('GET tag (listing tags)', function(finished) {
+			this.timeout(20000);
+			app.request()
+			.get(CONTEXT_PATH + "/gitapi/tag/file/" + "sketch")
+			.expect(200)
+			.end(function(err, res) {
+				assert.ifError(err);
+				console.log(res.body.Children[0])
+				// assert.equal(res.body.Children[0].)
+				finished();
+			})
+
+		})
+	})
+
+	describe('Removing a repository', function() {
+
+		it('DELETE clone (delete a repository)', function(finished) {
+			app.request()
+			.delete(CONTEXT_PATH + "/gitapi/clone/file/" + TEST_REPO_NAME)
+			.expect(200)
+			.end(finished);
+		});
+
+		it('Check nodegit for deleted repo', function(finished) {
+			git.Repository.open(repoPath)
+			.catch(function(err) {
+				return err;
+			})
+			.done(function(err) {
+				assert(err); // returns an error because repo does not exist, which is what we want
+				finished();
+			});
+		});
+
+	});
+
+});
