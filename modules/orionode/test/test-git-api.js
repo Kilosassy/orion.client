@@ -189,6 +189,7 @@ describe('Use Case 1: init repo, add file, commit file, add remote, fetch from r
 	});
 	
 	var remoteName = "origin";
+
 	describe('Adding a remote', function() {
 		var remoteURI = "https://github.com/eclipse/sketch.git"; // small example repo from Eclipse
 
@@ -224,13 +225,87 @@ describe('Use Case 1: init repo, add file, commit file, add remote, fetch from r
 		})
 	});
 
+	describe ('Deleting a remote', function() {
+
+		it('DELETE remote (removing a remote)', function(finished) {
+			app.request()
+			.delete(CONTEXT_PATH + "/gitapi/remote/" + remoteName + "/file/" + TEST_REPO_NAME)
+			.expect(200)
+			.end(finished);
+		})
+
+		it('Check nodegit for deleted remote', function(finished) {
+			git.Repository.open(repoPath)
+			.then(function(repo) {
+				return git.Remote.lookup(repo, remoteName);
+			})
+			.catch(function(err) {
+				return err;
+			})
+			.done(function(err) {
+				assert(err); // returns an error because remote does not exist, which is what we want
+				finished();
+			});
+		});
+	})
+
+	// describe('Add a new remote and push to it', function() {
+		
+	// 	var remoteURI = "https://github.com/albertcui/orion-test-repo.git"; // small test repo
+	// 	var remoteName = "origin"
+	// 	var branchName = "master"
+
+	// 	it('POST remote (adding a new remote)', function(finished) {
+	// 		app.request()
+	// 		.post(CONTEXT_PATH + "/gitapi/remote/file/" + TEST_REPO_NAME)
+	// 		.send({
+	// 			Remote: remoteName,
+	// 			RemoteURI: remoteURI
+	// 		})
+	// 		.end(function(err, res) {
+	// 			assert.ifError(err);
+	// 			assert.equal(res.body.Location, "/gitapi/remote/" + remoteName + "/file/" + TEST_REPO_NAME);
+	// 			finished();
+	// 		})
+	// 	})
+
+	// 	it('POST remote (pushign to a new remote)', function(finished) {
+	// 		app.request()
+	// 		.post(CONTEXT_PATH + "/gitapi/remote/" + remoteName + "/" + branchName + "/file/" + TEST_REPO_NAME);
+	// 		.send({
+	// 			Force: true; // force push
+
+
+	// 		})
+	// 		.end(function(err, res) {
+	// 			assert.ifError(err);
+	// 			assert.equal()
+	// 			finished();
+	// 		})
+	// 	})
+
+	// })
+
 	describe('Removing a repository', function() {
+
 		it('DELETE clone (delete a repository)', function(finished) {
 			app.request()
 			.delete(CONTEXT_PATH + "/gitapi/clone/file/" + TEST_REPO_NAME)
 			.expect(200)
 			.end(finished);
 		});
+
+		it('Check nodegit for deleted repo', function(finished) {
+			git.Repository.open(repoPath)
+			.catch(function(err) {
+				return err;
+			})
+			.done(function(err) {
+				assert(err); // returns an error because repo does not exist, which is what we want
+				finished();
+			});
+		});
+
 	});
 
 });
