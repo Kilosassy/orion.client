@@ -155,8 +155,16 @@ function postInit(workspaceDir, fileRoot, req, res, next, rest) {
 
 function postClone(workspaceDir, fileRoot, req, res, next, rest) {
 	var url = req.body.GitUrl;
+	var dirName = url.substring(url.lastIndexOf("/") + 1).replace(".git", "")
 
-	git.Clone.clone(url, workspaceDir)
+	git.Clone.clone(url, path.join(workspaceDir, dirName),
+		{
+    		remoteCallbacks: {
+	        	certificateCheck: function() {
+	        		return 1; //Ignore SSL certificate check
+        		}
+        	}
+		})
 	.then(function() {
 		// I think clone will return when it finishes cloning, so we just give it a fake task and 100%
 		var resp = JSON.stringify({
