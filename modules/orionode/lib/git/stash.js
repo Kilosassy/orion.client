@@ -20,7 +20,6 @@ var path = require("path");
  *
  */ 
 function getStash(workspaceDir, fileRoot, req, res, next, rest) {
-	console.log("POST stash: " + workspaceDir + "   " + fileRoot+ "    " + JSON.stringify(req.url)+"  and REST: " + rest);
 	
 	var url = JSON.stringify(req.url);
 	var repoName = rest.replace("stash/file/", "");
@@ -32,7 +31,8 @@ function getStash(workspaceDir, fileRoot, req, res, next, rest) {
 
 	stashesArray = [];
         var stashCb = function(index, message, oid) {
-          stashesArray.push({"ApplyLocation" : "/gitapi/stash/" + oid + "/" + repoName, 
+          stashesArray.push({
+			"ApplyLocation" : "/gitapi/stash/" + oid + "/" + repoName, 
 			"AuthorEmail" : "admin@orion.eclipse.org",
 			"AuthorName" : "admin",
 			"CloneLocation" : cloneLocation,
@@ -42,14 +42,14 @@ function getStash(workspaceDir, fileRoot, req, res, next, rest) {
 			"DropLocation" : "/gitapi/stash/" + oid + "/" + repoName,
 			"Location:" : location.replace("/stash","/commit"),
 			"Message" : message, 
-			"Name" : String(oid)},
+			"Name" : String(oid),
 			"Time" : 1424471958000, //hardcoded local variable
 			"TreeLocation" : "/gitapi/tree/file/" + repoName + "/" + oid,
                         "Type" : "StashCommit" 
 			});
+	};
 
-	git.Repository.open(repoPath)
-        .then(function(repo) {
+	git.Repository.open(repoPath).then(function(repo) {
 
 		return git.Stash.foreach(repo, stashCb).then(function(){
 			var resp = JSON.stringify({
@@ -64,13 +64,10 @@ function getStash(workspaceDir, fileRoot, req, res, next, rest) {
                         res.setHeader('Content-Length', resp.length);
                         res.end(resp);
 
-		});
-		
-
+		}); 
 	});
 }
 
 module.exports = {
         getStash: getStash
 }
-
