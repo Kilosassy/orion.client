@@ -20,19 +20,36 @@ var path = require("path");
  *
  */ 
 function getStash(workspaceDir, fileRoot, req, res, next, rest) {
-	console.log("POST stash: " + workspaceDir + "   " + fileRoot+ "    " + JSON.stringify(req.url));
-	var stashes = [];
-	var stashCb = function(index, message, oid) {
+	console.log("POST stash: " + workspaceDir + "   " + fileRoot+ "    " + JSON.stringify(req.url)+"  and REST: " + rest);
+	
+	var url = JSON.stringify(req.url);
+	var repoPath = rest.replace("stash/file/", "");
+	repoPath = api.join(workspaceDir, repoPath);
+
+	var location = url.substring(0, url.indexOf('?'));
+	var cloneLocation = location.replace("/stash","/clone");
+	var stashType = "StashCommit";
+
+	stashes = [];
+        var stashCb = function(index, message, oid) {
           stashes.push({index: index, message: message, oid: oid});
+	  console.log("##Stash:{ index: "+index+", message: "+message+" ,oid: "+oid+" }"); 
         };
 
-    	return git.Repository.open(workspaceDir+"/booom")
-      	.then(function(repository) {
-						return git.Stash.foreach(repository, stashCb).then(
-							function() {
-								console.log("Stashes: " + JSON.stringify(stashes));
-							});
-      			});
+	git.Repository.open(repoPath)
+        .then(function(repo) {
+		console.log(" Location: " + location + 
+			    " CloneLocation: " + cloneLocation+
+			    " type: " + stashType+
+			    " repoPath: "+repoPath+
+			    " repo.namespace(): "+repo.getNamespace());
+
+		git.Stash.foreach(repo, stashCb).then(function(result){
+			console.log("Run git.stash.foreach and got: "+result);
+		});
+		
+
+	});
 }
 
 module.exports = {
