@@ -13,7 +13,7 @@
     "ini": "~1.3",
     "mkdirp": "*",
     "node-inspector": "~0.7.4",
-    "nodegit": "~0.3.3",
+    "nodegit": "~0.4.0",
     "pty.js": "0.2.5",
     "rimraf": "~2.2.6",
     "socket.io": "~1.0.4",

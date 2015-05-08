@@ -23,29 +23,47 @@ function getStash(workspaceDir, fileRoot, req, res, next, rest) {
 	console.log("POST stash: " + workspaceDir + "   " + fileRoot+ "    " + JSON.stringify(req.url)+"  and REST: " + rest);
 	
 	var url = JSON.stringify(req.url);
-	var repoPath = rest.replace("stash/file/", "");
-	repoPath = api.join(workspaceDir, repoPath);
+	var repoName = rest.replace("stash/file/", "");
+	var repoPath = api.join(workspaceDir, repoName);
 
 	var location = url.substring(0, url.indexOf('?'));
 	var cloneLocation = location.replace("/stash","/clone");
 	var stashType = "StashCommit";
 
-	stashes = [];
+	stashesArray = [];
         var stashCb = function(index, message, oid) {
-          stashes.push({index: index, message: message, oid: oid});
-	  console.log("##Stash:{ index: "+index+", message: "+message+" ,oid: "+oid+" }"); 
-        };
+          stashesArray.push({"ApplyLocation" : "/gitapi/stash/" + oid + "/" + repoName, 
+			"AuthorEmail" : "admin@orion.eclipse.org",
+			"AuthorName" : "admin",
+			"CloneLocation" : cloneLocation,
+			"CommitterEmail" : "admin@orion.eclipse.org",
+			"CommitterName" : "admin",
+			"DiffLocation" : "/gitapi/diff/" + oid + "/" + repoName,
+			"DropLocation" : "/gitapi/stash/" + oid + "/" + repoName,
+			"Location:" : location.replace("/stash","/commit"),
+			"Message" : message, 
+			"Name" : String(oid)},
+			"Time" : 1424471958000, //hardcoded local variable
+			"TreeLocation" : "/gitapi/tree/file/" + repoName + "/" + oid,
+                        "Type" : "StashCommit" 
+			});
 
 	git.Repository.open(repoPath)
         .then(function(repo) {
-		console.log(" Location: " + location + 
-			    " CloneLocation: " + cloneLocation+
-			    " type: " + stashType+
-			    " repoPath: "+repoPath+
-			    " repo.namespace(): "+repo.getNamespace());
 
-		git.Stash.foreach(repo, stashCb).then(function(result){
-			console.log("Run git.stash.foreach and got: "+result);
+		return git.Stash.foreach(repo, stashCb).then(function(){
+			var resp = JSON.stringify({
+                                "Children" : stashesArray,
+                                "Location" : location,
+				"CloneLocation" : cloneLocation,
+				"Type" : "StashCommit"
+                        });
+
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.setHeader('Content-Length', resp.length);
+                        res.end(resp);
+
 		});
 		
 
